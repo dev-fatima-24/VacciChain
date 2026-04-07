@@ -1,0 +1,22 @@
+{
+  "name": "vaccichain-backend",
+  "version": "1.0.0",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "jest --forceExit"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^12.0.0",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4",
+    "nodemon": "^3.0.2"
+  }
+}

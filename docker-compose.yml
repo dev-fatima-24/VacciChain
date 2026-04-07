@@ -1,0 +1,32 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - vaccichain
+
+  backend:
+    build: ./backend
+    ports:
+      - "4000:4000"
+    env_file: .env
+    depends_on:
+      - python-service
+    networks:
+      - vaccichain
+
+  python-service:
+    build: ./python-service
+    ports:
+      - "8001:8001"
+    environment:
+      - BACKEND_URL=http://backend:4000
+    networks:
+      - vaccichain
+
+networks:
+  vaccichain:
+    driver: bridge

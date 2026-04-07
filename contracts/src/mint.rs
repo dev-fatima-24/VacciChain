@@ -1,0 +1,74 @@
+use soroban_sdk::{Env, Address, String, Vec, panic_with_error};
+use crate::storage::{DataKey, VaccinationRecord};
+use crate::events;
+
+pub fn mint_vaccination(
+    env: &Env,
+    patient: Address,
+    vaccine_name: String,
+    date_administered: String,
+    issuer: Address,
+) -> u64 {
+    // Require issuer auth
+    issuer.require_auth();
+
+    // Check issuer is authorized
+    let is_authorized: bool = env
+        .storage()
+        .persistent()
+        .get(&DataKey::Issuer(issuer.clone()))
+        .unwrap_or(false);
+    if !is_authorized {
+        panic!("unauthorized issuer");
+    }
+
+    // Duplicate detection: check if patient already has this vaccine from this issuer
+    let tokens: Vec<u64> = env
+        .storage()
+        .persistent()
+        .get(&DataKey::PatientTokens(patient.clone()))
+        .unwrap_or(Vec::new(env));
+
+    for i in 0..tokens.len() {
+        let tid = tokens.get(i).unwrap();
+        let record: VaccinationRecord = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Token(tid))
+            .unwrap();
+        if record.vaccine_name == vaccine_name && record.issuer == issuer {
+            panic!("duplicate vaccination record");
+        }
+    }
+
+    // Assign token ID
+    let token_id: u64 = env
+        .storage()
+        .persistent()
+        .get(&DataKey::NextTokenId)
+        .unwrap_or(1u64);
+
+    let record = VaccinationRecord {
+        token_id,
+        patient: patient.clone(),
+        vaccine_name: vaccine_name.clone(),
+        date_administered,
+        issuer: issuer.clone(),
+        timestamp: env.ledger().timestamp(),
+    };
+
+    // Persist token
+    env.storage().persistent().set(&DataKey::Token(token_id), &record);
+
+    // Update patient token list
+    let mut patient_tokens = tokens;
+    patient_tokens.push_back(token_id);
+    env.storage().persistent().set(&DataKey::PatientTokens(patient.clone()), &patient_tokens);
+
+    // Increment next token ID
+    env.storage().persistent().set(&DataKey::NextTokenId, &(token_id + 1));
+
+    events::emit_minted(env, token_id, &patient, &vaccine_name, &issuer);
+
+    token_id
+}
