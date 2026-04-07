@@ -1,4 +1,4 @@
-use soroban_sdk::{Env, Address, String, Vec, panic_with_error};
+use soroban_sdk::{Env, Address, String, Vec};
 use crate::storage::{DataKey, VaccinationRecord};
 use crate::events;
 

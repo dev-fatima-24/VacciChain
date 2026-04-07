@@ -1,5 +1,4 @@
-use soroban_sdk::{contractclient, symbol_short, Env, Address, String};
-use crate::storage::{DataKey, VaccinationRecord};
+use soroban_sdk::{symbol_short, Env, Address, String};
 
 pub fn emit_minted(env: &Env, token_id: u64, patient: &Address, vaccine_name: &String, issuer: &Address) {
     env.events().publish(

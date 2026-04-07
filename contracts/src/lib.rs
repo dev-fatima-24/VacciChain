@@ -78,7 +78,7 @@ mod tests {
         let env = Env::default();
         env.mock_all_auths();
 
-        let contract_id = env.register_contract(None, VacciChainContract);
+        let contract_id = env.register(VacciChainContract, ());
         let client = VacciChainContractClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
@@ -108,7 +108,7 @@ mod tests {
         let env = Env::default();
         env.mock_all_auths();
 
-        let contract_id = env.register_contract(None, VacciChainContract);
+        let contract_id = env.register(VacciChainContract, ());
         let client = VacciChainContractClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
@@ -125,7 +125,7 @@ mod tests {
         let env = Env::default();
         env.mock_all_auths();
 
-        let contract_id = env.register_contract(None, VacciChainContract);
+        let contract_id = env.register(VacciChainContract, ());
         let client = VacciChainContractClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
@@ -147,7 +147,7 @@ mod tests {
         let env = Env::default();
         env.mock_all_auths();
 
-        let contract_id = env.register_contract(None, VacciChainContract);
+        let contract_id = env.register(VacciChainContract, ());
         let client = VacciChainContractClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
