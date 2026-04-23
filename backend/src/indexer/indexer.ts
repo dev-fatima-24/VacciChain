@@ -94,6 +94,13 @@ async function processEvent(event: SorobanRpc.Api.RawEventResponse): Promise<voi
   }
 }
 
+/**
+ * Starts the background event indexer.
+ * It polls the Soroban RPC for contract events (Campaign creation, Reward claim/redeem)
+ * and persists them to the local database.
+ * 
+ * @returns A promise that resolves when the indexer has started its initial poll.
+ */
 export async function startIndexer(): Promise<void> {
   await ensureIndexerTable();
   console.log("[indexer] started");

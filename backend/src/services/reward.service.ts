@@ -11,6 +11,14 @@ export interface Reward {
   redeemed_at?: Date;
 }
 
+/**
+ * Inserts a new reward or updates an existing one for a specific user and campaign.
+ * Also ensures the user exists in the users table.
+ * 
+ * @param r - The reward object to upsert.
+ * @returns A promise that resolves when the operation is complete.
+ * @throws Will throw an error if the database query fails.
+ */
 export async function upsertReward(r: Omit<Reward, "id" | "claimed_at">): Promise<void> {
   // Ensure user row exists
   await pool.query(
@@ -28,6 +36,13 @@ export async function upsertReward(r: Omit<Reward, "id" | "claimed_at">): Promis
   );
 }
 
+/**
+ * Retrieves all rewards associated with a specific user address.
+ * 
+ * @param address - The Stellar public key of the user.
+ * @returns A promise that resolves to an array of Reward objects.
+ * @throws Will throw an error if the database query fails.
+ */
 export async function getRewardsByUser(address: string): Promise<Reward[]> {
   const { rows } = await pool.query<Reward>(
     `SELECT r.*, c.reward_amount as campaign_reward
@@ -40,6 +55,18 @@ export async function getRewardsByUser(address: string): Promise<Reward[]> {
   return rows;
 }
 
+/**
+ * Records a blockchain transaction in the local database for auditing and indexing.
+ * 
+ * @param txHash - The unique hash of the transaction.
+ * @param type - The type of transaction (e.g., 'claim', 'redeem', 'create_campaign').
+ * @param userAddress - The address of the user involved, if any.
+ * @param campaignId - The ID of the related campaign, if any.
+ * @param amount - The amount involved in the transaction, if any.
+ * @param ledger - The ledger sequence number.
+ * @returns A promise that resolves when the record is inserted.
+ * @throws Will throw an error if the database query fails.
+ */
 export async function recordTransaction(
   txHash: string,
   type: string,

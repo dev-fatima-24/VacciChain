@@ -4,6 +4,10 @@ import { getCampaigns, getCampaignById } from "../services/campaign.service";
 
 export const campaignRouter = Router();
 
+/**
+ * GET /campaigns
+ * Returns a list of all campaigns stored in the database.
+ */
 campaignRouter.get("/", async (_req: Request, res: Response) => {
   try {
     const campaigns = await getCampaigns();
@@ -13,6 +17,10 @@ campaignRouter.get("/", async (_req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /campaigns/:id
+ * Returns a single campaign by its ID.
+ */
 campaignRouter.get("/:id", async (req: Request, res: Response) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });

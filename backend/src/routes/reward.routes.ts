@@ -3,6 +3,12 @@ import { getRewardsByUser } from "../services/reward.service";
 
 export const rewardRouter = Router();
 
+/**
+ * GET /user/:address/rewards
+ * Returns all rewards associated with a specific Stellar address.
+ * 
+ * @param address - The 56-character Stellar public key.
+ */
 rewardRouter.get("/user/:address/rewards", async (req: Request, res: Response) => {
   const { address } = req.params;
   if (!address || address.length !== 56) {
