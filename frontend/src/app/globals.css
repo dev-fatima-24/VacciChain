@@ -49,28 +49,46 @@ body {
   border: 1px solid #2d3148;
   border-radius: 12px;
   overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3);
 }
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 16px;
   border-bottom: 1px solid #2d3148;
 }
-.card-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-.card-footer { padding: 12px 16px; border-top: 1px solid #2d3148; }
+.card-body { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.card-footer { padding: 0 16px 16px 16px; }
+.card-footer .btn { width: 100%; padding: 12px; font-weight: 600; }
 
 /* ── Badge ────────────────────────────────────────────────────────────────── */
 .badge {
-  padding: 2px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
-.badge[data-status="active"] { background: #14532d; color: #4ade80; }
-.badge[data-status="inactive"] { background: #450a0a; color: #f87171; }
-.badge[data-status="expired"] { background: #1c1917; color: #a8a29e; }
+.badge[data-status="active"] { background: rgba(20, 83, 45, 0.3); color: #4ade80; border: 1px solid #14532d; }
+.badge[data-status="inactive"] { background: rgba(69, 10, 10, 0.3); color: #f87171; border: 1px solid #450a0a; }
+.badge[data-status="expired"] { background: rgba(28, 25, 23, 0.3); color: #a8a29e; border: 1px solid #1c1917; }
+
+.campaign-title { font-size: 1.25rem; font-weight: 700; color: #fff; }
+.reward-highlight { font-size: 1.5rem; font-weight: 800; color: #7c6af7; margin: 4px 0; }
+.reward-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
+
+.expiry-text { font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
+.expiry-dot { width: 8px; height: 8px; border-radius: 50%; }
+.expiry-dot[data-urgency="low"] { background: #4ade80; }
+.expiry-dot[data-urgency="medium"] { background: #facc15; }
+.expiry-dot[data-urgency="high"] { background: #f87171; }
+.expiry-dot[data-urgency="expired"] { background: #64748b; }
 
 /* ── Reward list ──────────────────────────────────────────────────────────── */
 .reward-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
