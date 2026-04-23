@@ -5,9 +5,6 @@ const { buildChallenge, verifyChallenge } = require('../stellar/sep10');
 
 const router = express.Router();
 
-// Pending challenges: nonce → { clientPublicKey, expiresAt }
-const pendingChallenges = new Map();
-
 // POST /auth/sep10 — generate challenge
 router.post('/sep10', async (req, res) => {
   const { public_key } = req.body;
@@ -21,10 +18,6 @@ router.post('/sep10', async (req, res) => {
 
   try {
     const { transaction, nonce } = await buildChallenge(public_key);
-    pendingChallenges.set(nonce, {
-      clientPublicKey: public_key,
-      expiresAt: Date.now() + 5 * 60 * 1000,
-    });
     res.json({ transaction, nonce });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -38,18 +31,9 @@ router.post('/verify', (req, res) => {
     return res.status(400).json({ error: 'transaction and nonce required' });
   }
 
-  const pending = pendingChallenges.get(nonce);
-  if (!pending || Date.now() > pending.expiresAt) {
-    pendingChallenges.delete(nonce);
-    return res.status(400).json({ error: 'Challenge expired or not found' });
-  }
-
   try {
     const publicKey = verifyChallenge(transaction, nonce);
-    pendingChallenges.delete(nonce);
 
-    // Determine role: check if this key is the admin or a known issuer
-    // In production, query the contract; here we use env-based admin check
     const role = publicKey === process.env.ADMIN_PUBLIC_KEY ? 'issuer' : 'patient';
 
     const token = jwt.sign(
