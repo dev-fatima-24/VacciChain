@@ -8,12 +8,38 @@ All four issues have been successfully implemented and are ready for review and 
 
 | Issue | Title | Branch | Status |
 |-------|-------|--------|--------|
+| Issue | Title | Branch | Status |
+|-------|-------|--------|--------|
+| #107 | Domain Glossary | `issue-107-glossary` | ✅ Complete |
+| #96 | User Guide | `issue-96-user-guide` | ✅ Complete |
+| #98 | Backend Documentation (JSDoc) | `issue-98-jsdoc` | ✅ Complete |
+| #58 | Campaign Card Redesign | `issue-58-campaign-card` | ✅ Complete |
 | #30 | Responsive Campaign Card Layout | `fix/responsive-campaign-cards-30` | ✅ Complete |
 | #59 | Network Status Monitoring | `feature/network-status-indicator-59` | ✅ Complete |
 | #40 | Internationalization Support | `feature/internationalization-40` | ✅ Complete |
 | #60 | CSV Export and Print View | `feature/csv-export-print-view-60` | ✅ Complete |
 
 ## Quick Links
+
+### Issue #107: Domain Glossary
+- **Branch:** `issue-107-glossary`
+- **Files Changed:** 2 files (`docs/glossary.md`, `README.md`)
+- **Key Features:** Defined core terms like LYT, Claim, and Soroban.
+
+### Issue #96: User Guide
+- **Branch:** `issue-96-user-guide`
+- **Files Changed:** 5 files (`docs/user-guide.md`, 4 images)
+- **Key Features:** Step-by-step setup and usage guide with screenshots.
+
+### Issue #98: Backend Documentation
+- **Branch:** `issue-98-jsdoc`
+- **Files Changed:** 5 files (`backend/src/...`)
+- **Key Features:** TSDoc/JSDoc for services, routes, and indexer.
+
+### Issue #58: Campaign Card Redesign
+- **Branch:** `issue-58-campaign-card`
+- **Files Changed:** 2 files (`globals.css`, `CampaignCard.tsx`)
+- **Key Features:** Visual hierarchy, relative expiry, and hover effects.
 
 ### Issue #30: Responsive Campaign Card Layout
 - **Branch:** `fix/responsive-campaign-cards-30`
