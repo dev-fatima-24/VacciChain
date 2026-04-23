@@ -14,6 +14,9 @@ pub struct VaccinationRecord {
 #[contracttype]
 pub enum DataKey {
     Admin,
+    Initialized,
+    PendingAdmin,
+    AdminTransferExpiry,
     Issuer(Address),
     PatientTokens(Address),
     Token(u64),

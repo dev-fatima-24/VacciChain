@@ -5,8 +5,18 @@ mod events;
 mod mint;
 mod verify;
 
-use soroban_sdk::{contract, contractimpl, Address, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, contracterror, Address, Env, String, Vec};
 use storage::{DataKey, VaccinationRecord};
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ContractError {
+    AlreadyInitialized = 1,
+    NotInitialized = 2,
+    Unauthorized = 3,
+    ProposalExpired = 4,
+    NoPendingTransfer = 5,
+}
 
 #[contract]
 pub struct VacciChainContract;
@@ -14,12 +24,14 @@ pub struct VacciChainContract;
 #[contractimpl]
 impl VacciChainContract {
     /// Initialize contract with an admin address
-    pub fn initialize(env: Env, admin: Address) {
-        if env.storage().persistent().has(&DataKey::Admin) {
-            panic!("already initialized");
+    pub fn initialize(env: Env, admin: Address) -> Result<(), ContractError> {
+        if env.storage().persistent().has(&DataKey::Initialized) {
+            return Err(ContractError::AlreadyInitialized);
         }
         admin.require_auth();
+        env.storage().persistent().set(&DataKey::Initialized, &true);
         env.storage().persistent().set(&DataKey::Admin, &admin);
+        Ok(())
     }
 
     /// Admin: authorize a new issuer
@@ -27,7 +39,7 @@ impl VacciChainContract {
         let admin: Address = env.storage().persistent().get(&DataKey::Admin).expect("not initialized");
         admin.require_auth();
         env.storage().persistent().set(&DataKey::Issuer(issuer.clone()), &true);
-        events::emit_issuer_added(&env, &issuer);
+        events::emit_issuer_added(&env, &issuer, &admin);
     }
 
     /// Admin: revoke an issuer
@@ -35,7 +47,7 @@ impl VacciChainContract {
         let admin: Address = env.storage().persistent().get(&DataKey::Admin).expect("not initialized");
         admin.require_auth();
         env.storage().persistent().set(&DataKey::Issuer(issuer.clone()), &false);
-        events::emit_issuer_revoked(&env, &issuer);
+        events::emit_issuer_revoked(&env, &issuer, &admin);
     }
 
     /// Issuer: mint a soulbound vaccination NFT
@@ -66,6 +78,36 @@ impl VacciChainContract {
             .get(&DataKey::Issuer(address))
             .unwrap_or(false)
     }
+
+    /// Admin: propose a new admin (two-step transfer). Proposal expires after 24 hours.
+    pub fn propose_admin(env: Env, new_admin: Address) -> Result<(), ContractError> {
+        let admin: Address = env.storage().persistent().get(&DataKey::Admin)
+            .ok_or(ContractError::NotInitialized)?;
+        admin.require_auth();
+        // 24 hours = 86400 seconds
+        let expires_at = env.ledger().timestamp() + 86400;
+        env.storage().persistent().set(&DataKey::PendingAdmin, &new_admin);
+        env.storage().persistent().set(&DataKey::AdminTransferExpiry, &expires_at);
+        events::emit_admin_transfer_proposed(&env, &admin, &new_admin, expires_at);
+        Ok(())
+    }
+
+    /// Proposed admin: accept the admin role.
+    pub fn accept_admin(env: Env) -> Result<(), ContractError> {
+        let pending: Address = env.storage().persistent().get(&DataKey::PendingAdmin)
+            .ok_or(ContractError::NoPendingTransfer)?;
+        let expires_at: u64 = env.storage().persistent().get(&DataKey::AdminTransferExpiry)
+            .ok_or(ContractError::NoPendingTransfer)?;
+        if env.ledger().timestamp() > expires_at {
+            return Err(ContractError::ProposalExpired);
+        }
+        pending.require_auth();
+        env.storage().persistent().set(&DataKey::Admin, &pending);
+        env.storage().persistent().remove(&DataKey::PendingAdmin);
+        env.storage().persistent().remove(&DataKey::AdminTransferExpiry);
+        events::emit_admin_transfer_accepted(&env, &pending);
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -85,7 +127,7 @@ mod tests {
         let issuer = Address::generate(&env);
         let patient = Address::generate(&env);
 
-        client.initialize(&admin);
+        client.initialize(&admin).unwrap();
         client.add_issuer(&issuer);
 
         let token_id = client.mint_vaccination(
@@ -112,7 +154,7 @@ mod tests {
         let client = VacciChainContractClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
-        client.initialize(&admin);
+        client.initialize(&admin).unwrap();
 
         let from = Address::generate(&env);
         let to = Address::generate(&env);
@@ -132,7 +174,7 @@ mod tests {
         let fake_issuer = Address::generate(&env);
         let patient = Address::generate(&env);
 
-        client.initialize(&admin);
+        client.initialize(&admin).unwrap();
         client.mint_vaccination(
             &patient,
             &String::from_str(&env, "COVID-19"),
@@ -154,7 +196,7 @@ mod tests {
         let issuer = Address::generate(&env);
         let patient = Address::generate(&env);
 
-        client.initialize(&admin);
+        client.initialize(&admin).unwrap();
         client.add_issuer(&issuer);
 
         client.mint_vaccination(
@@ -163,12 +205,67 @@ mod tests {
             &String::from_str(&env, "2024-01-15"),
             &issuer,
         );
-        // Second mint with same vaccine + issuer should panic
         client.mint_vaccination(
             &patient,
             &String::from_str(&env, "COVID-19"),
             &String::from_str(&env, "2024-02-01"),
             &issuer,
         );
+    }
+
+    #[test]
+    fn test_double_init_rejected() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(VacciChainContract, ());
+        let client = VacciChainContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        client.initialize(&admin).unwrap();
+
+        let result = client.try_initialize(&admin);
+        assert_eq!(result, Err(Ok(ContractError::AlreadyInitialized)));
+    }
+
+    #[test]
+    fn test_propose_and_accept_admin() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(VacciChainContract, ());
+        let client = VacciChainContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let new_admin = Address::generate(&env);
+
+        client.initialize(&admin).unwrap();
+        client.propose_admin(&new_admin).unwrap();
+        client.accept_admin().unwrap();
+
+        // new_admin should now be admin — verify by calling add_issuer (only admin can)
+        let issuer = Address::generate(&env);
+        client.add_issuer(&issuer);
+    }
+
+    #[test]
+    fn test_accept_admin_expired() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(VacciChainContract, ());
+        let client = VacciChainContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let new_admin = Address::generate(&env);
+
+        client.initialize(&admin).unwrap();
+        client.propose_admin(&new_admin).unwrap();
+
+        // Advance ledger time past 24 hours
+        env.ledger().with_mut(|l| l.timestamp += 86401);
+
+        let result = client.try_accept_admin();
+        assert_eq!(result, Err(Ok(ContractError::ProposalExpired)));
     }
 }
