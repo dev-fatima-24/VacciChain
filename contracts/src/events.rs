@@ -38,3 +38,11 @@ pub fn emit_admin_transfer_accepted(env: &Env, new_admin: &Address) {
         (new_admin.clone(), timestamp),
     );
 }
+
+pub fn emit_contract_upgraded(env: &Env, new_wasm_hash: &soroban_sdk::BytesN<32>, admin: &Address) {
+    let timestamp = env.ledger().timestamp();
+    env.events().publish(
+        (symbol_short!("upgraded"),),
+        (new_wasm_hash.clone(), admin.clone(), timestamp),
+    );
+}
