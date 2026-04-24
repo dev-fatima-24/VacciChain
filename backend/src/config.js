@@ -1,0 +1,28 @@
+const { z } = require('zod');
+
+const schema = z.object({
+  // Stellar / Soroban
+  STELLAR_NETWORK: z.enum(['testnet', 'mainnet']).default('testnet'),
+  HORIZON_URL: z.string().url(),
+  SOROBAN_RPC_URL: z.string().url(),
+  STELLAR_NETWORK_PASSPHRASE: z.string().min(1),
+
+  // Contract
+  VACCINATIONS_CONTRACT_ID: z.string().min(1),
+
+  // Backend
+  ADMIN_SECRET_KEY: z.string().min(1),
+  SEP10_SERVER_KEY: z.string().min(1),
+  JWT_SECRET: z.string().min(1),
+  PORT: z.coerce.number().int().positive().default(4000),
+});
+
+const result = schema.safeParse(process.env);
+
+if (!result.success) {
+  const missing = result.error.issues.map(i => `  ${i.path[0]}: ${i.message}`).join('\n');
+  console.error(`[config] Missing or invalid environment variables:\n${missing}`);
+  process.exit(1);
+}
+
+module.exports = result.data;
