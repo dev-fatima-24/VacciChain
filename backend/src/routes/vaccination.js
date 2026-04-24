@@ -2,22 +2,22 @@ const express = require('express');
 const StellarSdk = require('@stellar/stellar-sdk');
 const authMiddleware = require('../middleware/auth');
 const issuerMiddleware = require('../middleware/issuer');
+const { validateStellarPublicKey } = require('../middleware/wallet');
 const { invokeContract, simulateContract } = require('../stellar/soroban');
 
 const router = express.Router();
 
 // POST /vaccination/issue — mint NFT (issuer only)
-router.post('/issue', authMiddleware, issuerMiddleware, async (req, res) => {
+router.post(
+  '/issue',
+  authMiddleware,
+  issuerMiddleware,
+  validateStellarPublicKey('body', 'patient_address'),
+  async (req, res) => {
   const { patient_address, vaccine_name, date_administered } = req.body;
 
   if (!patient_address || !vaccine_name || !date_administered) {
     return res.status(400).json({ error: 'patient_address, vaccine_name, date_administered required' });
-  }
-
-  try {
-    StellarSdk.Keypair.fromPublicKey(patient_address);
-  } catch {
-    return res.status(400).json({ error: 'Invalid patient_address' });
   }
 
   try {
@@ -38,14 +38,8 @@ router.post('/issue', authMiddleware, issuerMiddleware, async (req, res) => {
 });
 
 // GET /vaccination/:wallet — fetch all records for a wallet
-router.get('/:wallet', authMiddleware, async (req, res) => {
+router.get('/:wallet', authMiddleware, validateStellarPublicKey('params', 'wallet', 'wallet'), async (req, res) => {
   const { wallet } = req.params;
-
-  try {
-    StellarSdk.Keypair.fromPublicKey(wallet);
-  } catch {
-    return res.status(400).json({ error: 'Invalid wallet address' });
-  }
 
   try {
     const args = [StellarSdk.Address.fromString(wallet).toScVal()];
