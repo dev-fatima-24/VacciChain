@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from './useFreighter';
 
 export function useVaccination() {
-  const { token } = useAuth();
+  const { apiFetch } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -10,9 +10,7 @@ export function useVaccination() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/vaccination/${wallet}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/vaccination/${wallet}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       return data;
@@ -22,18 +20,15 @@ export function useVaccination() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [apiFetch]);
 
   const issueVaccination = useCallback(async (payload) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/vaccination/issue', {
+      const res = await apiFetch('/vaccination/issue', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -45,7 +40,7 @@ export function useVaccination() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [apiFetch]);
 
   return { fetchRecords, issueVaccination, loading, error };
 }

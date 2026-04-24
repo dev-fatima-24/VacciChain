@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useFreighter';
 import { useVaccination } from '../hooks/useVaccination';
 
@@ -10,11 +10,27 @@ const styles = {
   label: { color: '#94a3b8', fontSize: '0.85rem', marginBottom: '0.25rem' },
 };
 
+const FORM_KEY = 'issuer_form_draft';
+const EMPTY_FORM = { patient_address: '', vaccine_name: '', date_administered: '' };
+
 export default function IssuerDashboard() {
   const { publicKey, role, connect } = useAuth();
   const { issueVaccination, loading, error } = useVaccination();
-  const [form, setForm] = useState({ patient_address: '', vaccine_name: '', date_administered: '' });
+
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(FORM_KEY);
+      return saved ? JSON.parse(saved) : EMPTY_FORM;
+    } catch {
+      return EMPTY_FORM;
+    }
+  });
   const [success, setSuccess] = useState(null);
+
+  // Persist form draft on every change
+  useEffect(() => {
+    sessionStorage.setItem(FORM_KEY, JSON.stringify(form));
+  }, [form]);
 
   if (!publicKey) {
     return (
@@ -35,7 +51,8 @@ export default function IssuerDashboard() {
     const result = await issueVaccination(form);
     if (result) {
       setSuccess(`Vaccination NFT minted! Token ID: ${result.token_id}`);
-      setForm({ patient_address: '', vaccine_name: '', date_administered: '' });
+      setForm(EMPTY_FORM);
+      sessionStorage.removeItem(FORM_KEY);
     }
   };
 
