@@ -1,21 +1,30 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useFreighter';
 import { useVaccination } from '../hooks/useVaccination';
+import { usePagination } from '../hooks/usePagination';
 import NFTCard from '../components/NFTCard';
 
 const styles = {
   page: { maxWidth: 700, margin: '2rem auto', padding: '0 1rem' },
-  btn: { padding: '0.6rem 1.5rem', background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: 8 },
+  btn: { padding: '0.6rem 1.5rem', background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' },
+  controls: { display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.25rem' },
+  pageBtn: {
+    padding: '0.4rem 0.9rem', background: '#1e293b', color: '#e2e8f0',
+    border: '1px solid #334155', borderRadius: 6, cursor: 'pointer',
+  },
+  pageBtnDisabled: { opacity: 0.35, cursor: 'default' },
 };
 
 export default function PatientDashboard() {
   const { publicKey, connect } = useAuth();
   const { fetchRecords, loading, error } = useVaccination();
   const [records, setRecords] = useState([]);
+  const { currentItems, page, totalPages, goTo, reset, total } = usePagination(records);
 
   useEffect(() => {
     if (publicKey) {
       fetchRecords(publicKey).then((data) => {
+        reset();
         if (data) setRecords(data.records || []);
       });
     }
@@ -32,16 +41,43 @@ export default function PatientDashboard() {
 
   return (
     <div style={styles.page}>
-      <h2 style={{ marginBottom: '1.5rem', color: '#e2e8f0' }}>My Vaccination Records</h2>
-      <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-        Wallet: {publicKey}
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.5rem' }}>
+        <h2 style={{ color: '#e2e8f0', margin: 0 }}>My Vaccination Records</h2>
+        {total > 0 && (
+          <span style={{ color: '#64748b', fontSize: '0.85rem' }}>{total} record{total !== 1 ? 's' : ''}</span>
+        )}
+      </div>
+      <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Wallet: {publicKey}</p>
+
       {loading && <p style={{ color: '#94a3b8' }}>Loading…</p>}
       {error && <p style={{ color: '#f87171' }}>Error: {error}</p>}
-      {!loading && records.length === 0 && (
-        <p style={{ color: '#94a3b8' }}>No vaccination records found.</p>
+      {!loading && total === 0 && <p style={{ color: '#94a3b8' }}>No vaccination records found.</p>}
+
+      {currentItems.map((r) => <NFTCard key={r.token_id} record={r} />)}
+
+      {totalPages > 1 && (
+        <nav aria-label="Pagination" style={styles.controls}>
+          <button
+            style={{ ...styles.pageBtn, ...(page === 1 ? styles.pageBtnDisabled : {}) }}
+            onClick={() => goTo(page - 1)}
+            disabled={page === 1}
+            aria-label="Previous page"
+          >
+            ‹ Prev
+          </button>
+          <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+            Page {page} of {totalPages}
+          </span>
+          <button
+            style={{ ...styles.pageBtn, ...(page === totalPages ? styles.pageBtnDisabled : {}) }}
+            onClick={() => goTo(page + 1)}
+            disabled={page === totalPages}
+            aria-label="Next page"
+          >
+            Next ›
+          </button>
+        </nav>
       )}
-      {records.map((r) => <NFTCard key={r.token_id} record={r} />)}
     </div>
   );
 }
