@@ -2,12 +2,13 @@ const express = require('express');
 const StellarSdk = require('@stellar/stellar-sdk');
 const authMiddleware = require('../middleware/auth');
 const issuerMiddleware = require('../middleware/issuer');
+const idempotency = require('../middleware/idempotency');
 const { invokeContract, simulateContract } = require('../stellar/soroban');
 
 const router = express.Router();
 
 // POST /vaccination/issue — mint NFT (issuer only)
-router.post('/issue', authMiddleware, issuerMiddleware, async (req, res) => {
+router.post('/issue', authMiddleware, issuerMiddleware, idempotency, async (req, res) => {
   const { patient_address, vaccine_name, date_administered } = req.body;
 
   if (!patient_address || !vaccine_name || !date_administered) {
