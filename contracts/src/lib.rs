@@ -20,8 +20,15 @@ use storage::{DataKey, IssuerRecord, VaccinationRecord};
 /// | 3    | Unauthorized     | Caller is not an authorized issuer               |
 /// | 4    | ProposalExpired  | Admin transfer proposal has expired              |
 /// | 5    | NoPendingTransfer | No pending admin transfer exists                |
-/// | 6    | DuplicateRecord  | Identical vaccination record already exists      |
-/// | 7    | SoulboundToken   | Tokens are non-transferable (soulbound)          |
+/// | 6    | DuplicateRecord              | Identical vaccination record already exists      |
+/// | 7    | RecordNotFound               | Vaccination record does not exist                |
+/// | 8    | AlreadyRevoked               | Vaccination record is already revoked           |
+/// | 9    | InvalidInput                 | Input failed validation at the contract boundary |
+/// | 10   | InvalidInputVaccineName      | vaccine_name exceeds maximum length             |
+/// | 11   | InvalidInputDateAdministered | date_administered exceeds maximum length        |
+/// | 12   | InvalidInputIssuerName       | issuer name exceeds maximum length              |
+/// | 13   | InvalidInputLicense          | issuer license exceeds maximum length           |
+/// | 14   | InvalidInputCountry          | issuer country exceeds maximum length           |
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ContractError {
@@ -33,6 +40,28 @@ pub enum ContractError {
     DuplicateRecord = 6,
     RecordNotFound = 7,
     AlreadyRevoked = 8,
+    InvalidInput = 9,
+    InvalidInputVaccineName = 10,
+    InvalidInputDateAdministered = 11,
+    InvalidInputIssuerName = 12,
+    InvalidInputLicense = 13,
+    InvalidInputCountry = 14,
+}
+
+const MAX_STRING_LENGTH: u32 = 100;
+
+fn validate_input_length(field: &String, field_name: &str) -> Result<(), ContractError> {
+    if field.len() > MAX_STRING_LENGTH {
+        return Err(match field_name {
+            "vaccine_name" => ContractError::InvalidInputVaccineName,
+            "date_administered" => ContractError::InvalidInputDateAdministered,
+            "name" => ContractError::InvalidInputIssuerName,
+            "license" => ContractError::InvalidInputLicense,
+            "country" => ContractError::InvalidInputCountry,
+            _ => ContractError::InvalidInput,
+        });
+    }
+    Ok(())
 }
 
 #[contract]
@@ -52,10 +81,20 @@ impl VacciChainContract {
     }
 
     /// Admin: authorize a new issuer with metadata
-    pub fn add_issuer(env: Env, issuer: Address, name: String, license: String, country: String) {
+    pub fn add_issuer(
+        env: Env,
+        issuer: Address,
+        name: String,
+        license: String,
+        country: String,
+    ) -> Result<(), ContractError> {
         let admin: Address = env.storage().persistent().get(&DataKey::Admin).expect("not initialized");
         admin.require_auth();
         env.storage().persistent().set(&DataKey::Issuer(hash_address(&env, &issuer)), &true);
+
+        validate_input_length(&name, "name")?;
+        validate_input_length(&license, "license")?;
+        validate_input_length(&country, "country")?;
 
         let record = IssuerRecord {
             name,
@@ -66,6 +105,7 @@ impl VacciChainContract {
 
         env.storage().persistent().set(&DataKey::Issuer(issuer.clone()), &record);
         events::emit_issuer_added(&env, &issuer, &admin);
+        Ok(())
     }
 
     /// Public: get issuer metadata
@@ -224,7 +264,7 @@ mod tests {
             &String::from_str(&env, "General Hospital"),
             &String::from_str(&env, "LIC-12345"),
             &String::from_str(&env, "USA"),
-        );
+        ).unwrap();
 
         let token_id = client.mint_vaccination(
             &patient,
@@ -308,7 +348,7 @@ mod tests {
             &String::from_str(&env, "General Hospital"),
             &String::from_str(&env, "LIC-12345"),
             &String::from_str(&env, "USA"),
-        );
+        ).unwrap();
 
         client.mint_vaccination(
             &patient,
@@ -324,6 +364,60 @@ mod tests {
             &issuer,
         );
         assert_eq!(result, Err(Ok(ContractError::DuplicateRecord)));
+    }
+
+    #[test]
+    fn test_add_issuer_invalid_input_name_too_long() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(VacciChainContract, ());
+        let client = VacciChainContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let issuer = Address::generate(&env);
+        client.initialize(&admin).unwrap();
+
+        let long_name = "A".repeat(101);
+        let result = client.try_add_issuer(
+            &issuer,
+            &String::from_str(&env, &long_name),
+            &String::from_str(&env, "LIC-12345"),
+            &String::from_str(&env, "USA"),
+        );
+
+        assert_eq!(result, Err(Ok(ContractError::InvalidInputIssuerName)));
+    }
+
+    #[test]
+    fn test_mint_vaccination_invalid_input_vaccine_name_too_long() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(VacciChainContract, ());
+        let client = VacciChainContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let issuer = Address::generate(&env);
+        let patient = Address::generate(&env);
+
+        client.initialize(&admin).unwrap();
+        client.add_issuer(
+            &issuer,
+            &String::from_str(&env, "General Hospital"),
+            &String::from_str(&env, "LIC-12345"),
+            &String::from_str(&env, "USA"),
+        ).unwrap();
+
+        let long_vaccine = "A".repeat(101);
+        let result = client.try_mint_vaccination(
+            &patient,
+            &String::from_str(&env, &long_vaccine),
+            &String::from_str(&env, "2024-01-15"),
+            &issuer,
+        );
+
+        assert_eq!(result, Err(Ok(ContractError::InvalidInputVaccineName)));
     }
 
     #[test]
@@ -360,7 +454,7 @@ mod tests {
             &String::from_str(&env, "General Hospital"),
             &String::from_str(&env, "LIC-12345"),
             &String::from_str(&env, "USA"),
-        );
+        ).unwrap();
         client.mint_vaccination(
             &vaccinated_patient,
             &String::from_str(&env, "COVID-19"),
@@ -402,7 +496,7 @@ mod tests {
             &String::from_str(&env, "General Hospital"),
             &String::from_str(&env, "LIC-12345"),
             &String::from_str(&env, "USA"),
-        );
+        ).unwrap();
 
         let mut wallets: Vec<Address> = Vec::new(&env);
         for _ in 0..100u32 {
@@ -462,7 +556,7 @@ mod tests {
             &String::from_str(&env, "General Hospital"),
             &String::from_str(&env, "LIC-12345"),
             &String::from_str(&env, "USA"),
-        );
+        ).unwrap();
         client.mint_vaccination(
             &patient,
             &String::from_str(&env, "Flu"),
@@ -511,7 +605,7 @@ mod tests {
             &String::from_str(&env, "General Hospital"),
             &String::from_str(&env, "LIC-12345"),
             &String::from_str(&env, "USA"),
-        );
+        ).unwrap();
     }
 
     #[test]
@@ -532,7 +626,7 @@ mod tests {
             &String::from_str(&env, "General Hospital"),
             &String::from_str(&env, "LIC-12345"),
             &String::from_str(&env, "USA"),
-        );
+        ).unwrap();
 
         let token_id = client.mint_vaccination(
             &patient,
@@ -573,7 +667,7 @@ mod tests {
             &String::from_str(&env, "General Hospital"),
             &String::from_str(&env, "LIC-12345"),
             &String::from_str(&env, "USA"),
-        );
+        ).unwrap();
 
         let token_id = client.mint_vaccination(
             &patient,
@@ -607,7 +701,7 @@ mod tests {
             &String::from_str(&env, "General Hospital"),
             &String::from_str(&env, "LIC-12345"),
             &String::from_str(&env, "USA"),
-        );
+        ).unwrap();
 
         let token_id = client.mint_vaccination(
             &patient,
