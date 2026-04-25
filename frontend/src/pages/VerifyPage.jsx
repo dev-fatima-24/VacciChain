@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import VerificationBadge from '../components/VerificationBadge';
 import NFTCard from '../components/NFTCard';
 import { useToast } from '../hooks/useToast';
@@ -15,12 +15,11 @@ export default function VerifyPage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleVerify = async (e) => {
-    e.preventDefault();
+  const verify = async (address) => {
     setLoading(true);
     setResult(null);
     try {
-      const res = await fetch(`/verify/${wallet.trim()}`);
+      const res = await fetch(`/verify/${address.trim()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setResult(data);
@@ -29,6 +28,24 @@ export default function VerifyPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const w = params.get('wallet');
+    if (w) {
+      setWallet(w);
+      verify(w);
+    }
+  }, []);
+
+  const handleVerify = (e) => {
+    e.preventDefault();
+    const trimmed = wallet.trim();
+    const url = new URL(window.location);
+    url.searchParams.set('wallet', trimmed);
+    window.history.pushState({}, '', url);
+    verify(trimmed);
   };
 
   return (
