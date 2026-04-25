@@ -15,6 +15,10 @@ const schema = z.object({
   SEP10_SERVER_KEY: z.string().min(1),
   JWT_SECRET: z.string().min(1),
   PORT: z.coerce.number().int().positive().default(4000),
+
+  // Indexer
+  EVENT_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(15000),
+  DATABASE_PATH: z.string().default('/data/vaccichain.db'),
 });
 
 const result = schema.safeParse(process.env);

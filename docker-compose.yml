@@ -30,6 +30,11 @@ services:
     ports:
       - "4000:4000"
     env_file: .env
+    environment:
+      - EVENT_POLL_INTERVAL_MS=${EVENT_POLL_INTERVAL_MS:-15000}
+      - DATABASE_PATH=/data/vaccichain.db
+    volumes:
+      - vaccichain_db:/data
     depends_on:
       - python-service
     networks:
@@ -59,6 +64,7 @@ services:
       - "8001:8001"
     environment:
       - BACKEND_URL=http://backend:4000
+      - ANOMALY_THRESHOLD=${ANOMALY_THRESHOLD:-50}
     networks:
       - vaccichain
     deploy:
@@ -83,3 +89,6 @@ services:
 networks:
   vaccichain:
     driver: bridge
+
+volumes:
+  vaccichain_db:

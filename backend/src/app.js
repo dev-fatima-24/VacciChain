@@ -1,5 +1,5 @@
 require('dotenv').config();
-require('./config');
+const config = require('./config');
 const express = require('express');
 const cors = require('cors');
 
@@ -20,9 +20,11 @@ app.use('/admin', adminRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
-const PORT = process.env.PORT || 4000;
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+  initDb(config.DATABASE_PATH).then(() => {
+    startPoller(config.EVENT_POLL_INTERVAL_MS);
+    app.listen(config.PORT, () => console.log(`Backend running on port ${config.PORT}`));
+  });
 }
 
 module.exports = app;
