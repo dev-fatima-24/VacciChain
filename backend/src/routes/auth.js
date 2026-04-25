@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const StellarSdk = require('@stellar/stellar-sdk');
 const { buildChallenge, verifyChallenge } = require('../stellar/sep10');
 const { sep10Limiter } = require('../middleware/rateLimiter');
+const { audit } = require('../middleware/auditLog');
 
 const router = express.Router();
 
@@ -43,8 +44,11 @@ router.post('/verify', (req, res) => {
       { expiresIn: '1h' }
     );
 
+    audit({ actor: publicKey, action: 'auth.login', result: 'success', meta: { role } });
+
     res.json({ token, publicKey, role });
   } catch (err) {
+    audit({ actor: 'unknown', action: 'auth.login', result: 'failure', meta: { error: err.message } });
     res.status(401).json({ error: err.message });
   }
 });

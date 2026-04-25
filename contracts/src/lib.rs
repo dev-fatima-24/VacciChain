@@ -17,6 +17,8 @@ pub enum ContractError {
     ProposalExpired = 4,
     NoPendingTransfer = 5,
     DuplicateRecord = 6,
+    RecordNotFound = 7,
+    AlreadyRevoked = 8,
 }
 
 #[contract]
@@ -77,6 +79,42 @@ impl VacciChainContract {
         issuer: Address,
     ) -> Result<u64, ContractError> {
         mint::mint_vaccination(&env, patient, vaccine_name, date_administered, issuer)
+    }
+
+    /// Original issuer or admin: revoke a vaccination record.
+    /// The record is marked revoked: true but never deleted (audit trail preserved).
+    pub fn revoke_vaccination(env: Env, token_id: u64, revoker: Address) -> Result<(), ContractError> {
+        revoker.require_auth();
+
+        let mut record: VaccinationRecord = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Token(token_id))
+            .ok_or(ContractError::RecordNotFound)?;
+
+        if record.revoked {
+            return Err(ContractError::AlreadyRevoked);
+        }
+
+        // Only the original issuer or the current admin may revoke
+        let admin: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Admin)
+            .ok_or(ContractError::NotInitialized)?;
+
+        if revoker != record.issuer && revoker != admin {
+            return Err(ContractError::Unauthorized);
+        }
+
+        record.revoked = true;
+        env.storage().persistent().set(&DataKey::Token(token_id), &record);
+        // Also set a dedicated revocation flag for fast lookup
+        env.storage().persistent().set(&DataKey::Revoked(token_id), &true);
+
+        events::emit_revoked(&env, token_id, &revoker);
+
+        Ok(())
     }
 
     /// Transfer is permanently blocked — soulbound enforcement
@@ -449,8 +487,113 @@ mod tests {
     }
 
     #[test]
-    fn test_accept_admin_expired() {
+    fn test_revoke_vaccination() {
         let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(VacciChainContract, ());
+        let client = VacciChainContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let issuer = Address::generate(&env);
+        let patient = Address::generate(&env);
+
+        client.initialize(&admin).unwrap();
+        client.add_issuer(
+            &issuer,
+            &String::from_str(&env, "General Hospital"),
+            &String::from_str(&env, "LIC-12345"),
+            &String::from_str(&env, "USA"),
+        );
+
+        let token_id = client.mint_vaccination(
+            &patient,
+            &String::from_str(&env, "COVID-19"),
+            &String::from_str(&env, "2024-01-15"),
+            &issuer,
+        ).unwrap();
+
+        // Before revocation: patient is vaccinated
+        let (vaccinated, records) = client.verify_vaccination(&patient);
+        assert!(vaccinated);
+        assert_eq!(records.len(), 1);
+
+        // Revoke by original issuer
+        client.revoke_vaccination(&token_id, &issuer).unwrap();
+
+        // After revocation: excluded from active status
+        let (vaccinated_after, records_after) = client.verify_vaccination(&patient);
+        assert!(!vaccinated_after);
+        assert_eq!(records_after.len(), 0);
+    }
+
+    #[test]
+    fn test_revoke_already_revoked() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(VacciChainContract, ());
+        let client = VacciChainContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let issuer = Address::generate(&env);
+        let patient = Address::generate(&env);
+
+        client.initialize(&admin).unwrap();
+        client.add_issuer(
+            &issuer,
+            &String::from_str(&env, "General Hospital"),
+            &String::from_str(&env, "LIC-12345"),
+            &String::from_str(&env, "USA"),
+        );
+
+        let token_id = client.mint_vaccination(
+            &patient,
+            &String::from_str(&env, "COVID-19"),
+            &String::from_str(&env, "2024-01-15"),
+            &issuer,
+        ).unwrap();
+
+        client.revoke_vaccination(&token_id, &issuer).unwrap();
+
+        let result = client.try_revoke_vaccination(&token_id, &issuer);
+        assert_eq!(result, Err(Ok(ContractError::AlreadyRevoked)));
+    }
+
+    #[test]
+    fn test_revoke_unauthorized() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(VacciChainContract, ());
+        let client = VacciChainContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let issuer = Address::generate(&env);
+        let patient = Address::generate(&env);
+        let stranger = Address::generate(&env);
+
+        client.initialize(&admin).unwrap();
+        client.add_issuer(
+            &issuer,
+            &String::from_str(&env, "General Hospital"),
+            &String::from_str(&env, "LIC-12345"),
+            &String::from_str(&env, "USA"),
+        );
+
+        let token_id = client.mint_vaccination(
+            &patient,
+            &String::from_str(&env, "COVID-19"),
+            &String::from_str(&env, "2024-01-15"),
+            &issuer,
+        ).unwrap();
+
+        let result = client.try_revoke_vaccination(&token_id, &stranger);
+        assert_eq!(result, Err(Ok(ContractError::Unauthorized)));
+    }
+
+    #[test]
+    fn test_accept_admin_expired() {        let env = Env::default();
         env.mock_all_auths();
 
         let contract_id = env.register(VacciChainContract, ());
