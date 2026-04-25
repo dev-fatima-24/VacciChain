@@ -13,15 +13,18 @@ export default function NFTCard({ record, onClick }) {
         marginBottom: '1rem',
         cursor: 'pointer',
         transition: 'border-color 0.15s',
+        width: '100%',
+        boxSizing: 'border-box',
+        minWidth: 0,
       }}
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#38bdf8')}
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#334155')}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#38bdf8' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+        <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#38bdf8', minWidth: 0, wordBreak: 'break-word' }}>
           💉 {record.vaccine_name}
         </span>
-        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>#{record.token_id}</span>
+        <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>#{record.token_id}</span>
       </div>
       <p style={{ color: '#94a3b8', marginTop: '0.5rem', fontSize: '0.9rem' }}>
         Date: {record.date_administered}
