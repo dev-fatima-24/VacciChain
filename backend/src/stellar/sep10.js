@@ -1,4 +1,5 @@
 const StellarSdk = require('@stellar/stellar-sdk');
+const nonceStore = require('./nonceStore');
 
 const NETWORK_PASSPHRASE =
   process.env.STELLAR_NETWORK === 'mainnet'
@@ -7,9 +8,6 @@ const NETWORK_PASSPHRASE =
 
 const HORIZON_URL = process.env.HORIZON_URL || 'https://horizon-testnet.stellar.org';
 const server = new StellarSdk.Horizon.Server(HORIZON_URL);
-
-// In-memory nonce store (use Redis in production)
-const usedNonces = new Set();
 
 /**
  * Build a SEP-10 challenge transaction.
@@ -38,6 +36,7 @@ async function buildChallenge(clientPublicKey) {
 
   tx.sign(serverKeypair);
 
+  nonceStore.set(nonce, clientPublicKey);
   return { transaction: tx.toXDR(), nonce };
 }
 
@@ -46,9 +45,8 @@ async function buildChallenge(clientPublicKey) {
  * Returns the verified public key on success.
  */
 function verifyChallenge(transactionXDR, nonce) {
-  if (usedNonces.has(nonce)) {
-    throw new Error('Replay attack detected: nonce already used');
-  }
+  // Consume nonce — throws if unknown, expired, or already used
+  nonceStore.consume(nonce);
 
   const serverKeypair = StellarSdk.Keypair.fromSecret(process.env.SEP10_SERVER_KEY);
   const tx = new StellarSdk.Transaction(transactionXDR, NETWORK_PASSPHRASE);
@@ -81,9 +79,6 @@ function verifyChallenge(transactionXDR, nonce) {
     }
   });
   if (!clientSigned) throw new Error('Client signature missing or invalid');
-
-  // Mark nonce as used (replay protection)
-  usedNonces.add(nonce);
 
   return clientPublicKey;
 }

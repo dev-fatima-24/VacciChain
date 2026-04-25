@@ -1,0 +1,2 @@
+origin	git@github.com:EDOHWARES/VacciChain.git (fetch)
+origin	git@github.com:EDOHWARES/VacciChain.git (push)

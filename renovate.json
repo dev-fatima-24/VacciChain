@@ -1,0 +1,53 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    ":docker"
+  ],
+  "dockerfile": true,
+  "docker": {
+    "enabled": true,
+    "major": {
+      "enabled": false
+    }
+  },
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "assignees": ["@dev-team"]
+  },
+  "docker-compose": {
+    "enabled": false
+  },
+  "packageRules": [
+    {
+      "description": "Auto-merge Docker digest-only updates",
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["digest"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "minimumReleaseAge": "0 days"
+    },
+    {
+      "description": "Require approval for minor/major Node.js updates",
+      "matchImages": ["node"],
+      "matchUpdateTypes": ["minor", "major"],
+      "automerge": false
+    },
+    {
+      "description": "Require approval for minor/major Python updates",
+      "matchImages": ["python"],
+      "matchUpdateTypes": ["minor", "major"],
+      "automerge": false
+    },
+    {
+      "description": "Require approval for minor/major nginx updates",
+      "matchImages": ["nginx"],
+      "matchUpdateTypes": ["minor", "major"],
+      "automerge": false
+    }
+  ],
+  "schedule": [
+    "before 3am on Monday"
+  ]
+}

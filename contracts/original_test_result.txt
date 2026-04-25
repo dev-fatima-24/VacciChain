@@ -1,0 +1,82 @@
+   Compiling vaccichain v0.1.0 (/home/edohwares/Desktop/Room/drips/VacciChain/contracts)
+error[E0599]: no method named `unwrap` found for unit type `()` in the current scope
+   --> src/lib.rs:148:35
+    |
+148 | ...n).unwrap();
+    |       ^^^^^^ method not found in `()`
+
+error[E0599]: no method named `unwrap` found for unit type `()` in the current scope
+   --> src/lib.rs:180:35
+    |
+180 | ...n).unwrap();
+    |       ^^^^^^ method not found in `()`
+
+error[E0599]: no method named `unwrap` found for unit type `()` in the current scope
+   --> src/lib.rs:200:35
+    |
+200 | ...n).unwrap();
+    |       ^^^^^^ method not found in `()`
+
+error[E0599]: no method named `unwrap` found for unit type `()` in the current scope
+   --> src/lib.rs:222:35
+    |
+222 | ...n).unwrap();
+    |       ^^^^^^ method not found in `()`
+
+error[E0599]: no method named `unwrap` found for unit type `()` in the current scope
+   --> src/lib.rs:253:35
+    |
+253 | ...n).unwrap();
+    |       ^^^^^^ method not found in `()`
+
+error[E0599]: no method named `unwrap` found for unit type `()` in the current scope
+   --> src/lib.rs:270:35
+    |
+270 | ...n).unwrap();
+    |       ^^^^^^ method not found in `()`
+
+error[E0599]: no method named `unwrap` found for unit type `()` in the current scope
+   --> src/lib.rs:271:42
+    |
+271 | ...n).unwrap();
+    |       ^^^^^^ method not found in `()`
+
+error[E0599]: no method named `unwrap` found for unit type `()` in the current scope
+   --> src/lib.rs:272:31
+    |
+272 | ...().unwrap();
+    |       ^^^^^^ method not found in `()`
+
+error[E0599]: no method named `unwrap` found for unit type `()` in the current scope
+   --> src/lib.rs:295:35
+    |
+295 | ...n).unwrap();
+    |       ^^^^^^ method not found in `()`
+
+error[E0599]: no method named `unwrap` found for unit type `()` in the current scope
+   --> src/lib.rs:296:42
+    |
+296 | ...n).unwrap();
+    |       ^^^^^^ method not found in `()`
+
+error[E0599]: no method named `with_mut` found for struct `Ledger` in the current scope
+   --> src/lib.rs:299:22
+    |
+299 | ...().with_mut(|l|...
+    |       ^^^^^^^^ method not found in `Ledger`
+    |
+   ::: /home/edohwares/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/soroban-sdk-22.0.11/src/testutils.rs:284:8
+    |
+284 | ...fn with_mut<F>(...
+    |       -------- the method is available for `soroban_sdk::ledger::Ledger` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+    = note: the full name for the type has been written to '/home/edohwares/Desktop/Room/drips/VacciChain/contracts/target/debug/deps/vaccichain-4929fd35c9a9e16d.long-type-16565308034266051034.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: trait `Ledger` which provides `with_mut` is implemented but not in scope; perhaps you want to import it
+    |
+133 +     use soroban_sdk::testutils::Ledger;
+    |
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `vaccichain` (lib test) due to 11 previous errors

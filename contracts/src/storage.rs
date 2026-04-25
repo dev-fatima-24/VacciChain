@@ -10,6 +10,16 @@ pub struct VaccinationRecord {
     pub issuer: Address,
     pub timestamp: u64,
     pub schema_version: u32,
+    pub revoked: bool,
+}
+
+#[contracttype]
+#[derive(Clone)]
+pub struct IssuerRecord {
+    pub name: String,
+    pub license: String,
+    pub country: String,
+    pub authorized: bool,
 }
 
 #[contracttype]
@@ -22,4 +32,5 @@ pub enum DataKey {
     PatientTokens(Address),
     Token(u64),
     NextTokenId,
+    Revoked(u64),
 }

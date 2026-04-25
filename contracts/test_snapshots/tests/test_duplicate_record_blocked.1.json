@@ -35,6 +35,15 @@
               "args": [
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
+                },
+                {
+                  "string": "General Hospital"
+                },
+                {
+                  "string": "LIC-12345"
+                },
+                {
+                  "string": "USA"
                 }
               ]
             }
@@ -197,7 +206,40 @@
                 },
                 "durability": "persistent",
                 "val": {
-                  "bool": true
+                  "map": [
+                    {
+                      "key": {
+                        "symbol": "authorized"
+                      },
+                      "val": {
+                        "bool": true
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "country"
+                      },
+                      "val": {
+                        "string": "USA"
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "license"
+                      },
+                      "val": {
+                        "string": "LIC-12345"
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "name"
+                      },
+                      "val": {
+                        "string": "General Hospital"
+                      }
+                    }
+                  ]
                 }
               }
             },

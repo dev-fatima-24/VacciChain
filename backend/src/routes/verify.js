@@ -1,18 +1,14 @@
 const express = require('express');
 const StellarSdk = require('@stellar/stellar-sdk');
+const { validateStellarPublicKey } = require('../middleware/wallet');
 const { simulateContract } = require('../stellar/soroban');
+const { verifyLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
 // GET /verify/:wallet — public, no auth required
-router.get('/:wallet', async (req, res) => {
+router.get('/:wallet', validateStellarPublicKey('params', 'wallet', 'wallet'), async (req, res) => {
   const { wallet } = req.params;
-
-  try {
-    StellarSdk.Keypair.fromPublicKey(wallet);
-  } catch {
-    return res.status(400).json({ error: 'Invalid wallet address' });
-  }
 
   try {
     const args = [StellarSdk.Address.fromString(wallet).toScVal()];
