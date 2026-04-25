@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useFreighter';
 import { useVaccination } from '../hooks/useVaccination';
+import ConfirmMintDialog from '../components/ConfirmMintDialog';
 
 const styles = {
   page: { maxWidth: 500, width: '100%', margin: '2rem auto', padding: '0 1rem', boxSizing: 'border-box' },
@@ -46,6 +47,7 @@ export default function IssuerDashboard() {
   });
   const [touched, setTouched] = useState({});
   const [success, setSuccess] = useState(null);
+  const [confirming, setConfirming] = useState(false);
 
   const errors = validate(form);
   const isValid = Object.keys(errors).length === 0;
@@ -68,7 +70,7 @@ export default function IssuerDashboard() {
     return <div style={styles.page}><p style={{ color: '#f87171' }}>Access denied: issuer role required.</p></div>;
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     const result = await issueVaccination(form);
     if (result) {
