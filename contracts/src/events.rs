@@ -8,6 +8,14 @@ pub fn emit_minted(env: &Env, token_id: u64, patient: &Address, vaccine_name: &S
     );
 }
 
+pub fn emit_revoked(env: &Env, token_id: u64, revoker: &Address) {
+    let timestamp = env.ledger().timestamp();
+    env.events().publish(
+        (symbol_short!("revoked"), token_id),
+        (revoker.clone(), timestamp),
+    );
+}
+
 pub fn emit_issuer_added(env: &Env, issuer: &Address, admin: &Address) {
     let timestamp = env.ledger().timestamp();
     env.events().publish(

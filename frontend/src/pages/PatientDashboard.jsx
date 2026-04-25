@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../hooks/useFreighter';
 import { useVaccination } from '../hooks/useVaccination';
 import { usePagination } from '../hooks/usePagination';
 import NFTCard from '../components/NFTCard';
+import NFTCardSkeleton from '../components/NFTCardSkeleton';
 import RecordDetailModal from '../components/RecordDetailModal';
 
 const styles = {
@@ -22,20 +23,21 @@ export default function PatientDashboard() {
   const [records, setRecords] = useState([]);
   const { currentItems, page, totalPages, goTo, reset, total } = usePagination(records);
 
-  useEffect(() => {
-    if (publicKey) {
-      fetchRecords(publicKey).then((data) => {
-        reset();
-        if (data) setRecords(data.records || []);
-      });
-    }
+  const load = useCallback(() => {
+    if (!publicKey) return;
+    fetchRecords(publicKey).then((data) => {
+      reset();
+      if (data) setRecords(data.records || []);
+    });
   }, [publicKey, fetchRecords]);
+
+  useEffect(() => { load(); }, [load]);
 
   if (!publicKey) {
     return (
       <div style={styles.page}>
         <p style={{ color: '#94a3b8', marginBottom: '1rem' }}>Connect your wallet to view records.</p>
-        <button style={styles.btn} onClick={connect}>Connect Wallet</button>
+        <button style={styles.btn} onClick={connect} aria-label="Connect Freighter wallet to view vaccination records">Connect Wallet</button>
       </div>
     );
   }
@@ -50,9 +52,19 @@ export default function PatientDashboard() {
       </div>
       <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem', wordBreak: 'break-all' }}>Wallet: {publicKey}</p>
 
-      {loading && <p style={{ color: '#94a3b8' }}>Loading…</p>}
-      {error && <p style={{ color: '#f87171' }}>Error: {error}</p>}
-      {!loading && total === 0 && <p style={{ color: '#94a3b8' }}>No vaccination records found.</p>}
+      {loading && <NFTCardSkeleton count={3} />}
+      {!loading && error && (
+        <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+          <p style={{ color: '#f87171', marginBottom: '0.75rem' }}>⚠️ {error}</p>
+          <button style={styles.btn} onClick={load}>Retry</button>
+        </div>
+      )}
+      {!loading && !error && total === 0 && (
+        <div style={{ textAlign: 'center', padding: '3rem 0', color: '#475569' }}>
+          <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💉</p>
+          <p>No vaccination records found for this wallet.</p>
+        </div>
+      )}
 
       {currentItems.map((r) => <NFTCard key={r.token_id} record={r} />)}
 

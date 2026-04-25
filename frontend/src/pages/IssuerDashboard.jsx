@@ -59,7 +59,7 @@ export default function IssuerDashboard() {
     return (
       <div style={styles.page}>
         <p style={{ color: '#94a3b8', marginBottom: '1rem' }}>Connect your issuer wallet.</p>
-        <button style={styles.btn} onClick={connect}>Connect Wallet</button>
+        <button style={styles.btn} onClick={connect} aria-label="Connect issuer wallet">Connect Wallet</button>
       </div>
     );
   }
@@ -89,34 +89,31 @@ export default function IssuerDashboard() {
     <div style={styles.page}>
       <h2 style={{ marginBottom: '1.5rem', color: '#e2e8f0' }}>Issue Vaccination NFT</h2>
       <form style={styles.form} onSubmit={handleSubmit}>
-        {fields.map(({ key, label, placeholder, type }) => {
-          const hasError = touched[key] && errors[key];
-          return (
-            <div key={key}>
-              <p style={styles.label}>{label}</p>
-              <input
-                style={hasError ? styles.inputError : styles.input}
-                type={type}
-                placeholder={placeholder}
-                value={form[key]}
-                max={key === 'date_administered' ? today() : undefined}
-                onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                onBlur={() => setTouched((t) => ({ ...t, [key]: true }))}
-              />
-              {hasError && <p style={styles.fieldError}>{errors[key]}</p>}
-            </div>
-          );
-        })}
-        <button
-          style={isValid && !loading ? styles.btn : styles.btnDisabled}
-          type="submit"
-          disabled={!isValid || loading}
-        >
+        {[
+          { key: 'patient_address', label: 'Patient Stellar Address', placeholder: 'G...' },
+          { key: 'vaccine_name', label: 'Vaccine Name', placeholder: 'e.g. COVID-19' },
+          { key: 'date_administered', label: 'Date Administered', placeholder: 'YYYY-MM-DD' },
+        ].map(({ key, label, placeholder }) => (
+          <div key={key}>
+            <label htmlFor={key} style={styles.label}>{label}</label>
+            <input
+              id={key}
+              style={styles.input}
+              placeholder={placeholder}
+              value={form[key]}
+              onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+              required
+            />
+          </div>
+        ))}
+        <button style={styles.btn} type="submit" disabled={loading} aria-disabled={loading}>
           {loading ? 'Minting…' : 'Issue Vaccination NFT'}
         </button>
       </form>
-      {error && <p style={{ color: '#f87171', marginTop: '1rem' }}>Error: {error}</p>}
-      {success && <p style={{ color: '#4ade80', marginTop: '1rem' }}>✅ {success}</p>}
+      <div aria-live="polite" aria-atomic="true">
+        {error && <p style={{ color: '#f87171', marginTop: '1rem' }} role="alert">Error: {error}</p>}
+        {success && <p style={{ color: '#4ade80', marginTop: '1rem' }}>✅ {success}</p>}
+      </div>
     </div>
   );
 }

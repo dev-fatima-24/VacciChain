@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
   const [publicKey, setPublicKey] = useState(null);
   const [token, setToken] = useState(null);
   const [role, setRole] = useState(null);
-  const [freighterInstalled, setFreighterInstalled] = useState(true);
+  const [freighterInstalled, setFreighterInstalled] = useState(() => typeof window !== 'undefined' && !!window.freighter);
 
   const connect = useCallback(async () => {
     const connected = await isConnected();

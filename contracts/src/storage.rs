@@ -9,6 +9,7 @@ pub struct VaccinationRecord {
     pub date_administered: String,
     pub issuer: Address,
     pub timestamp: u64,
+    pub revoked: bool,
 }
 
 #[contracttype]
@@ -30,4 +31,5 @@ pub enum DataKey {
     PatientTokens(Address),
     Token(u64),
     NextTokenId,
+    Revoked(u64),
 }

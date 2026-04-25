@@ -35,22 +35,29 @@ export default function VerifyPage() {
     <div style={styles.page}>
       <h2 style={{ marginBottom: '1.5rem', color: '#e2e8f0' }}>Verify Vaccination Status</h2>
       <form onSubmit={handleVerify}>
+        <label htmlFor="wallet-input" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>
+          Stellar wallet address
+        </label>
         <input
+          id="wallet-input"
           style={styles.input}
           placeholder="Enter Stellar wallet address (G...)"
           value={wallet}
           onChange={(e) => setWallet(e.target.value)}
+          aria-label="Stellar wallet address to verify"
           required
         />
-        <button style={styles.btn} type="submit" disabled={loading}>
+        <button style={styles.btn} type="submit" disabled={loading} aria-disabled={loading}>
           {loading ? 'Checking…' : 'Verify'}
         </button>
       </form>
 
-      {error && <p style={{ color: '#f87171', marginTop: '1rem' }}>Error: {error}</p>}
+      <div aria-live="polite" aria-atomic="true">
+        {error && <p style={{ color: '#f87171', marginTop: '1rem' }} role="alert">Error: {error}</p>}
+      </div>
 
       {result && (
-        <div style={{ marginTop: '1.5rem' }}>
+        <div style={{ marginTop: '1.5rem' }} aria-live="polite">
           <VerificationBadge vaccinated={result.vaccinated} recordCount={result.record_count} />
           <div style={{ marginTop: '1.5rem' }}>
             {result.records?.map((r) => <NFTCard key={r.token_id} record={r} />)}

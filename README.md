@@ -261,25 +261,28 @@ cd python-service && pip install -r requirements.txt && uvicorn main:app --port 
 
 ##  Environment Variables
 
-```env
-# Stellar / Soroban
-STELLAR_NETWORK=testnet
-HORIZON_URL=https://horizon-testnet.stellar.org
-SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
-STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
+Copy `.env.example` to `.env` and fill in the required values. The backend validates all variables at startup and exits with a clear error message if anything is missing or malformed.
 
-# Contract
-VACCINATIONS_CONTRACT_ID=
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `STELLAR_NETWORK` | no | `testnet` | `testnet` or `mainnet` |
+| `HORIZON_URL` | yes | — | Horizon REST API URL for the chosen network |
+| `SOROBAN_RPC_URL` | yes | — | Soroban RPC endpoint for contract calls |
+| `STELLAR_NETWORK_PASSPHRASE` | yes | — | Must exactly match the target network |
+| `VACCINATIONS_CONTRACT_ID` | yes | — | Deployed contract address (starts with `C`) |
+| `ADMIN_SECRET_KEY` | yes | — | Signs admin contract invocations (starts with `S`) |
+| `ADMIN_PUBLIC_KEY` | yes | — | Grants `issuer` role on SEP-10 login (starts with `G`) |
+| `SEP10_SERVER_KEY` | yes | — | Signs SEP-10 challenge transactions (starts with `S`) |
+| `ISSUER_SECRET_KEY` | yes | — | Signs mint/revoke transactions (starts with `S`) |
+| `JWT_SECRET` | yes | — | Signs JWTs; rotate to invalidate all sessions |
+| `PORT` | no | `4000` | Backend listen port |
+| `RATE_LIMIT_SEP10` | no | `10` | Max SEP-10 requests per IP per minute |
+| `RATE_LIMIT_VERIFY` | no | `60` | Max verify requests per IP per minute |
+| `AUDIT_LOG_PATH` | no | `./audit.log` | Path to append-only NDJSON audit log |
+| `ANALYTICS_PORT` | no | `8001` | Python analytics service port |
+| `BACKEND_URL` | no | `http://backend:4000` | Analytics service → backend base URL |
 
-# Backend
-ADMIN_SECRET_KEY=
-SEP10_SERVER_KEY=
-JWT_SECRET=
-PORT=4000
-
-# Python service
-ANALYTICS_PORT=8001
-```
+For full descriptions, format rules, and examples see [docs/configuration.md](docs/configuration.md).
 
 ---
 

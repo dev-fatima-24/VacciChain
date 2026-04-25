@@ -57,6 +57,7 @@ pub fn mint_vaccination(
         date_administered,
         issuer: issuer.clone(),
         timestamp: env.ledger().timestamp(),
+        revoked: false,
     };
 
     // Persist token

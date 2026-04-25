@@ -6,8 +6,19 @@ mod mint;
 mod verify;
 
 use soroban_sdk::{contract, contractimpl, contracterror, Address, BytesN, Env, String, Vec};
-use storage::{DataKey, VaccinationRecord};
+use storage::{DataKey, IssuerRecord, VaccinationRecord};
 
+/// Contract errors.
+///
+/// | Code | Name             | Description                                      |
+/// |------|------------------|--------------------------------------------------|
+/// | 1    | AlreadyInitialized | Contract has already been initialized           |
+/// | 2    | NotInitialized   | Contract has not been initialized                |
+/// | 3    | Unauthorized     | Caller is not an authorized issuer               |
+/// | 4    | ProposalExpired  | Admin transfer proposal has expired              |
+/// | 5    | NoPendingTransfer | No pending admin transfer exists                |
+/// | 6    | DuplicateRecord  | Identical vaccination record already exists      |
+/// | 7    | SoulboundToken   | Tokens are non-transferable (soulbound)          |
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ContractError {
@@ -17,6 +28,8 @@ pub enum ContractError {
     ProposalExpired = 4,
     NoPendingTransfer = 5,
     DuplicateRecord = 6,
+    RecordNotFound = 7,
+    AlreadyRevoked = 8,
 }
 
 #[contract]
@@ -39,14 +52,14 @@ impl VacciChainContract {
     pub fn add_issuer(env: Env, issuer: Address, name: String, license: String, country: String) {
         let admin: Address = env.storage().persistent().get(&DataKey::Admin).expect("not initialized");
         admin.require_auth();
-        
+
         let record = IssuerRecord {
             name,
             license,
             country,
             authorized: true,
         };
-        
+
         env.storage().persistent().set(&DataKey::Issuer(issuer.clone()), &record);
         events::emit_issuer_added(&env, &issuer, &admin);
     }
@@ -60,7 +73,7 @@ impl VacciChainContract {
     pub fn revoke_issuer(env: Env, issuer: Address) {
         let admin: Address = env.storage().persistent().get(&DataKey::Admin).expect("not initialized");
         admin.require_auth();
-        
+
         if let Some(mut record) = env.storage().persistent().get::<DataKey, IssuerRecord>(&DataKey::Issuer(issuer.clone())) {
             record.authorized = false;
             env.storage().persistent().set(&DataKey::Issuer(issuer.clone()), &record);
@@ -77,6 +90,42 @@ impl VacciChainContract {
         issuer: Address,
     ) -> Result<u64, ContractError> {
         mint::mint_vaccination(&env, patient, vaccine_name, date_administered, issuer)
+    }
+
+    /// Original issuer or admin: revoke a vaccination record.
+    /// The record is marked revoked: true but never deleted (audit trail preserved).
+    pub fn revoke_vaccination(env: Env, token_id: u64, revoker: Address) -> Result<(), ContractError> {
+        revoker.require_auth();
+
+        let mut record: VaccinationRecord = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Token(token_id))
+            .ok_or(ContractError::RecordNotFound)?;
+
+        if record.revoked {
+            return Err(ContractError::AlreadyRevoked);
+        }
+
+        // Only the original issuer or the current admin may revoke
+        let admin: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Admin)
+            .ok_or(ContractError::NotInitialized)?;
+
+        if revoker != record.issuer && revoker != admin {
+            return Err(ContractError::Unauthorized);
+        }
+
+        record.revoked = true;
+        env.storage().persistent().set(&DataKey::Token(token_id), &record);
+        // Also set a dedicated revocation flag for fast lookup
+        env.storage().persistent().set(&DataKey::Revoked(token_id), &true);
+
+        events::emit_revoked(&env, token_id, &revoker);
+
+        Ok(())
     }
 
     /// Transfer is permanently blocked — soulbound enforcement
@@ -146,11 +195,7 @@ impl VacciChainContract {
 #[cfg(test)]
 mod tests {
     use super::*;
-<<<<<<< implement-batch-verification-function
-    use soroban_sdk::{testutils::{Address as _, Ledger}, Env, String};
-=======
-    use soroban_sdk::{testutils::Address as _, BytesN, Env, String};
->>>>>>> main
+    use soroban_sdk::{testutils::{Address as _, Ledger}, BytesN, Env, String};
 
     #[test]
     fn test_mint_and_verify() {
@@ -165,16 +210,12 @@ mod tests {
         let patient = Address::generate(&env);
 
         client.initialize(&admin);
-<<<<<<< implement-batch-verification-function
-        client.add_issuer(&issuer);
-=======
         client.add_issuer(
             &issuer,
             &String::from_str(&env, "General Hospital"),
             &String::from_str(&env, "LIC-12345"),
             &String::from_str(&env, "USA"),
         );
->>>>>>> main
 
         let token_id = client.mint_vaccination(
             &patient,
@@ -190,9 +231,9 @@ mod tests {
         assert_eq!(records.len(), 1);
     }
 
+    /// transfer() must always return SoulboundToken regardless of caller or token ID.
     #[test]
-    #[should_panic(expected = "soulbound")]
-    fn test_transfer_blocked() {
+    fn test_transfer_always_fails_with_soulbound_error() {
         let env = Env::default();
         env.mock_all_auths();
 
@@ -204,7 +245,14 @@ mod tests {
 
         let from = Address::generate(&env);
         let to = Address::generate(&env);
-        client.transfer(&from, &to, &1u64);
+
+        // Any caller, any token ID — always SoulboundToken
+        let result = client.try_transfer(&from, &to, &1u64);
+        assert_eq!(result, Err(Ok(ContractError::SoulboundToken)));
+
+        // Also verify with a different caller
+        let result2 = client.try_transfer(&admin, &to, &99u64);
+        assert_eq!(result2, Err(Ok(ContractError::SoulboundToken)));
     }
 
     #[test]
@@ -219,14 +267,9 @@ mod tests {
         let fake_issuer = Address::generate(&env);
         let patient = Address::generate(&env);
 
-<<<<<<< implement-batch-verification-function
-        client.initialize(&admin);
-        client.mint_vaccination(
-=======
         client.initialize(&admin).unwrap();
 
         let result = client.try_mint_vaccination(
->>>>>>> main
             &patient,
             &String::from_str(&env, "COVID-19"),
             &String::from_str(&env, "2024-01-15"),
@@ -248,16 +291,12 @@ mod tests {
         let patient = Address::generate(&env);
 
         client.initialize(&admin);
-<<<<<<< implement-batch-verification-function
-        client.add_issuer(&issuer);
-=======
         client.add_issuer(
             &issuer,
             &String::from_str(&env, "General Hospital"),
             &String::from_str(&env, "LIC-12345"),
             &String::from_str(&env, "USA"),
         );
->>>>>>> main
 
         client.mint_vaccination(
             &patient,
@@ -304,7 +343,12 @@ mod tests {
         let unvaccinated_patient = Address::generate(&env);
 
         client.initialize(&admin);
-        client.add_issuer(&issuer);
+        client.add_issuer(
+            &issuer,
+            &String::from_str(&env, "General Hospital"),
+            &String::from_str(&env, "LIC-12345"),
+            &String::from_str(&env, "USA"),
+        );
         client.mint_vaccination(
             &vaccinated_patient,
             &String::from_str(&env, "COVID-19"),
@@ -341,7 +385,12 @@ mod tests {
         let admin = Address::generate(&env);
         let issuer = Address::generate(&env);
         client.initialize(&admin);
-        client.add_issuer(&issuer);
+        client.add_issuer(
+            &issuer,
+            &String::from_str(&env, "General Hospital"),
+            &String::from_str(&env, "LIC-12345"),
+            &String::from_str(&env, "USA"),
+        );
 
         let mut wallets: Vec<Address> = Vec::new(&env);
         for _ in 0..100u32 {
@@ -396,7 +445,12 @@ mod tests {
         let patient = Address::generate(&env);
 
         client.initialize(&admin);
-        client.add_issuer(&issuer);
+        client.add_issuer(
+            &issuer,
+            &String::from_str(&env, "General Hospital"),
+            &String::from_str(&env, "LIC-12345"),
+            &String::from_str(&env, "USA"),
+        );
         client.mint_vaccination(
             &patient,
             &String::from_str(&env, "Flu"),
@@ -449,8 +503,113 @@ mod tests {
     }
 
     #[test]
-    fn test_accept_admin_expired() {
+    fn test_revoke_vaccination() {
         let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(VacciChainContract, ());
+        let client = VacciChainContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let issuer = Address::generate(&env);
+        let patient = Address::generate(&env);
+
+        client.initialize(&admin).unwrap();
+        client.add_issuer(
+            &issuer,
+            &String::from_str(&env, "General Hospital"),
+            &String::from_str(&env, "LIC-12345"),
+            &String::from_str(&env, "USA"),
+        );
+
+        let token_id = client.mint_vaccination(
+            &patient,
+            &String::from_str(&env, "COVID-19"),
+            &String::from_str(&env, "2024-01-15"),
+            &issuer,
+        ).unwrap();
+
+        // Before revocation: patient is vaccinated
+        let (vaccinated, records) = client.verify_vaccination(&patient);
+        assert!(vaccinated);
+        assert_eq!(records.len(), 1);
+
+        // Revoke by original issuer
+        client.revoke_vaccination(&token_id, &issuer).unwrap();
+
+        // After revocation: excluded from active status
+        let (vaccinated_after, records_after) = client.verify_vaccination(&patient);
+        assert!(!vaccinated_after);
+        assert_eq!(records_after.len(), 0);
+    }
+
+    #[test]
+    fn test_revoke_already_revoked() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(VacciChainContract, ());
+        let client = VacciChainContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let issuer = Address::generate(&env);
+        let patient = Address::generate(&env);
+
+        client.initialize(&admin).unwrap();
+        client.add_issuer(
+            &issuer,
+            &String::from_str(&env, "General Hospital"),
+            &String::from_str(&env, "LIC-12345"),
+            &String::from_str(&env, "USA"),
+        );
+
+        let token_id = client.mint_vaccination(
+            &patient,
+            &String::from_str(&env, "COVID-19"),
+            &String::from_str(&env, "2024-01-15"),
+            &issuer,
+        ).unwrap();
+
+        client.revoke_vaccination(&token_id, &issuer).unwrap();
+
+        let result = client.try_revoke_vaccination(&token_id, &issuer);
+        assert_eq!(result, Err(Ok(ContractError::AlreadyRevoked)));
+    }
+
+    #[test]
+    fn test_revoke_unauthorized() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(VacciChainContract, ());
+        let client = VacciChainContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let issuer = Address::generate(&env);
+        let patient = Address::generate(&env);
+        let stranger = Address::generate(&env);
+
+        client.initialize(&admin).unwrap();
+        client.add_issuer(
+            &issuer,
+            &String::from_str(&env, "General Hospital"),
+            &String::from_str(&env, "LIC-12345"),
+            &String::from_str(&env, "USA"),
+        );
+
+        let token_id = client.mint_vaccination(
+            &patient,
+            &String::from_str(&env, "COVID-19"),
+            &String::from_str(&env, "2024-01-15"),
+            &issuer,
+        ).unwrap();
+
+        let result = client.try_revoke_vaccination(&token_id, &stranger);
+        assert_eq!(result, Err(Ok(ContractError::Unauthorized)));
+    }
+
+    #[test]
+    fn test_accept_admin_expired() {        let env = Env::default();
         env.mock_all_auths();
 
         let contract_id = env.register(VacciChainContract, ());
@@ -479,9 +638,7 @@ mod tests {
         let admin = Address::generate(&env);
         client.initialize(&admin).unwrap();
 
-        // A valid 32-byte hash (all zeros stands in for a real WASM hash in unit tests)
         let wasm_hash = BytesN::from_array(&env, &[0u8; 32]);
-        // upgrade() should succeed (auth is mocked; deployer call is a no-op in test env)
         client.upgrade(&wasm_hash).unwrap();
     }
 
@@ -495,7 +652,6 @@ mod tests {
         let admin = Address::generate(&env);
         let non_admin = Address::generate(&env);
 
-        // Only mock auth for admin during initialize, not for non_admin
         env.mock_auths(&[soroban_sdk::testutils::MockAuth {
             address: &admin,
             invoke: &soroban_sdk::testutils::MockAuthInvoke {
@@ -508,7 +664,6 @@ mod tests {
         client.initialize(&admin).unwrap();
 
         let wasm_hash = BytesN::from_array(&env, &[0u8; 32]);
-        // Calling upgrade as non_admin (no auth mocked) should panic with auth error
         let result = client.try_upgrade(&wasm_hash);
         assert!(result.is_err());
     }
