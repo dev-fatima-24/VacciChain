@@ -22,12 +22,12 @@ export default function Landing() {
           <p style={{ color: '#4ade80', marginBottom: '1rem' }}>
             ✅ Connected: {publicKey.slice(0, 8)}…{publicKey.slice(-4)}
           </p>
-          <button style={{ ...styles.btn, background: 'var(--text-dim)' }} onClick={disconnect}>
+          <button style={{ ...styles.btn, background: '#475569' }} onClick={disconnect} aria-label="Disconnect Freighter wallet">
             Disconnect
           </button>
         </>
       ) : (
-        <button style={styles.btn} onClick={connect}>
+        <button style={styles.btn} onClick={connect} aria-label="Connect Freighter wallet">
           Connect Freighter Wallet
         </button>
       )}

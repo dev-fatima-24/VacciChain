@@ -1,32 +1,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.2s, color 0.2s; }
-a { color: var(--accent); text-decoration: none; }
+body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+a { color: #38bdf8; text-decoration: none; }
+a:hover { text-decoration: underline; }
 button { cursor: pointer; }
-
-/* Dark mode (default) */
-:root {
-  --bg: #0f172a;
-  --bg-card: #1e293b;
-  --bg-nav: #1e293b;
-  --border: #334155;
-  --text: #e2e8f0;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
-  --accent: #38bdf8;
-  --btn-primary: #0ea5e9;
-  --input-bg: #1e293b;
-}
-
-/* Light mode */
-html:not(.dark) {
-  --bg: #f1f5f9;
-  --bg-card: #ffffff;
-  --bg-nav: #ffffff;
-  --border: #e2e8f0;
-  --text: #0f172a;
-  --text-muted: #475569;
-  --text-dim: #94a3b8;
-  --accent: #0284c7;
-  --btn-primary: #0284c7;
-  --input-bg: #f8fafc;
-}
+:focus-visible { outline: 2px solid #38bdf8; outline-offset: 3px; }
+nav a { color: #cbd5e1; }
+nav a[aria-current="page"] { color: #38bdf8; font-weight: 600; }

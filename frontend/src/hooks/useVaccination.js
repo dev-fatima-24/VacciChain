@@ -1,51 +1,46 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from './useFreighter';
+import { useToast } from './useToast';
 
 export function useVaccination() {
-  const { token } = useAuth();
+  const { apiFetch } = useAuth();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const fetchRecords = useCallback(async (wallet) => {
     setLoading(true);
-    setError(null);
     try {
-      const res = await fetch(`/vaccination/${wallet}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/vaccination/${wallet}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       return data;
     } catch (e) {
-      setError(e.message);
+      toast(e.message || 'Failed to fetch records.', 'error');
       return null;
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [apiFetch, toast]);
 
   const issueVaccination = useCallback(async (payload) => {
     setLoading(true);
-    setError(null);
     try {
-      const res = await fetch('/vaccination/issue', {
+      const res = await apiFetch('/vaccination/issue', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      toast(`Vaccination NFT minted! Token ID: ${data.token_id}`, 'success');
       return data;
     } catch (e) {
-      setError(e.message);
+      toast(e.message || 'Failed to issue vaccination.', 'error');
       return null;
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [apiFetch, toast]);
 
-  return { fetchRecords, issueVaccination, loading, error };
+  return { fetchRecords, issueVaccination, loading };
 }

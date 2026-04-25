@@ -1,0 +1,6 @@
+remote: 
+remote: Create a pull request for 'feat/issuer-metadata-51' on GitHub by visiting:        
+remote:      https://github.com/EDOHWARES/VacciChain/pull/new/feat/issuer-metadata-51        
+remote: 
+To github.com:EDOHWARES/VacciChain.git
+ * [new branch]      feat/issuer-metadata-51 -> feat/issuer-metadata-51
