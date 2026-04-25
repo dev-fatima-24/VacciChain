@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import VerificationBadge from '../components/VerificationBadge';
 import NFTCard from '../components/NFTCard';
+import { useToast } from '../hooks/useToast';
 
 const styles = {
   page: { maxWidth: 600, margin: '2rem auto', padding: '0 1rem' },
@@ -9,15 +10,14 @@ const styles = {
 };
 
 export default function VerifyPage() {
+  const toast = useToast();
   const [wallet, setWallet] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const handleVerify = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     setResult(null);
     try {
       const res = await fetch(`/verify/${wallet.trim()}`);
@@ -25,7 +25,7 @@ export default function VerifyPage() {
       if (!res.ok) throw new Error(data.error);
       setResult(data);
     } catch (e) {
-      setError(e.message);
+      toast(e.message || 'Verification failed.', 'error');
     } finally {
       setLoading(false);
     }
@@ -46,8 +46,6 @@ export default function VerifyPage() {
           {loading ? 'Checking…' : 'Verify'}
         </button>
       </form>
-
-      {error && <p style={{ color: '#f87171', marginTop: '1rem' }}>Error: {error}</p>}
 
       {result && (
         <div style={{ marginTop: '1.5rem' }}>

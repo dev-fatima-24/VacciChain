@@ -15,7 +15,7 @@ const EMPTY_FORM = { patient_address: '', vaccine_name: '', date_administered: '
 
 export default function IssuerDashboard() {
   const { publicKey, role, connect } = useAuth();
-  const { issueVaccination, loading, error } = useVaccination();
+  const { issueVaccination, loading } = useVaccination();
 
   const [form, setForm] = useState(() => {
     try {
@@ -25,9 +25,7 @@ export default function IssuerDashboard() {
       return EMPTY_FORM;
     }
   });
-  const [success, setSuccess] = useState(null);
 
-  // Persist form draft on every change
   useEffect(() => {
     sessionStorage.setItem(FORM_KEY, JSON.stringify(form));
   }, [form]);
@@ -47,10 +45,8 @@ export default function IssuerDashboard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSuccess(null);
     const result = await issueVaccination(form);
     if (result) {
-      setSuccess(`Vaccination NFT minted! Token ID: ${result.token_id}`);
       setForm(EMPTY_FORM);
       sessionStorage.removeItem(FORM_KEY);
     }
@@ -80,8 +76,6 @@ export default function IssuerDashboard() {
           {loading ? 'Minting…' : 'Issue Vaccination NFT'}
         </button>
       </form>
-      {error && <p style={{ color: '#f87171', marginTop: '1rem' }}>Error: {error}</p>}
-      {success && <p style={{ color: '#4ade80', marginTop: '1rem' }}>✅ {success}</p>}
     </div>
   );
 }

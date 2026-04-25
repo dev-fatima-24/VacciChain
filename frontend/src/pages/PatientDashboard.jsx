@@ -18,7 +18,7 @@ const styles = {
 
 export default function PatientDashboard() {
   const { publicKey, connect } = useAuth();
-  const { fetchRecords, loading, error } = useVaccination();
+  const { fetchRecords, loading } = useVaccination();
   const [records, setRecords] = useState([]);
   const { currentItems, page, totalPages, goTo, reset, total } = usePagination(records);
 
@@ -51,7 +51,6 @@ export default function PatientDashboard() {
       <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Wallet: {publicKey}</p>
 
       {loading && <p style={{ color: '#94a3b8' }}>Loading…</p>}
-      {error && <p style={{ color: '#f87171' }}>Error: {error}</p>}
       {!loading && total === 0 && <p style={{ color: '#94a3b8' }}>No vaccination records found.</p>}
 
       {currentItems.map((r) => <NFTCard key={r.token_id} record={r} />)}

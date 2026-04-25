@@ -1,29 +1,23 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import {
   isConnected,
   getPublicKey,
   signTransaction,
 } from '@stellar/freighter-api';
+import { useToast } from './useToast';
 
 const AuthContext = createContext(null);
 const STORAGE_KEY = 'vaccichain_wallet';
 
 export function AuthProvider({ children }) {
+  const toast = useToast();
   const [publicKey, setPublicKey] = useState(null);
   const [token, setToken] = useState(null);
   const [role, setRole] = useState(null);
   const [freighterInstalled, setFreighterInstalled] = useState(true);
+  const tokenRef = useRef(null);
 
-  const connect = useCallback(async () => {
-    const connected = await isConnected();
-    if (!connected) {
-      setFreighterInstalled(false);
-      throw new Error('Freighter wallet not found. Please install it.');
-    }
-
-    const pk = await getPublicKey();
-
-    // SEP-10 flow
+  const runSep10 = useCallback(async (pk) => {
     const challengeRes = await fetch('/auth/sep10', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -42,17 +36,26 @@ export function AuthProvider({ children }) {
   }, []);
 
   const connect = useCallback(async () => {
-    const connected = await isConnected();
-    if (!connected) throw new Error('Freighter wallet not found. Please install it.');
-    const pk = await getPublicKey();
-    const data = await runSep10(pk);
-    setPublicKey(pk);
-    setToken(data.token);
-    tokenRef.current = data.token;
-    setRole(data.role);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ publicKey: pk, token: data.token, role: data.role }));
-    return data;
-  }, [runSep10]);
+    try {
+      const connected = await isConnected();
+      if (!connected) {
+        setFreighterInstalled(false);
+        throw new Error('Freighter wallet not found. Please install it.');
+      }
+      const pk = await getPublicKey();
+      const data = await runSep10(pk);
+      setPublicKey(pk);
+      setToken(data.token);
+      tokenRef.current = data.token;
+      setRole(data.role);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ publicKey: pk, token: data.token, role: data.role }));
+      toast('Wallet connected.', 'success');
+      return data;
+    } catch (e) {
+      toast(e.message || 'Failed to connect wallet.', 'error');
+      throw e;
+    }
+  }, [runSep10, toast]);
 
   const disconnect = useCallback(() => {
     setPublicKey(null);
@@ -66,9 +69,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return;
-
     const { publicKey: savedKey, token: savedToken, role: savedRole } = JSON.parse(saved);
-
     isConnected().then((connected) => {
       if (!connected) {
         setFreighterInstalled(false);
@@ -77,11 +78,11 @@ export function AuthProvider({ children }) {
       }
       setPublicKey(savedKey);
       setToken(savedToken);
+      tokenRef.current = savedToken;
       setRole(savedRole);
     }).catch(() => localStorage.removeItem(STORAGE_KEY));
   }, []);
 
-  // Fetch wrapper: on 401, re-runs SEP-10 silently and retries once
   const apiFetch = useCallback(async (url, options = {}) => {
     const doFetch = (t) => fetch(url, {
       ...options,
@@ -103,7 +104,7 @@ export function AuthProvider({ children }) {
   }, [runSep10]);
 
   return (
-    <AuthContext.Provider value={{ publicKey, token, role, freighterInstalled, connect, disconnect }}>
+    <AuthContext.Provider value={{ publicKey, token, role, freighterInstalled, connect, disconnect, apiFetch }}>
       {children}
     </AuthContext.Provider>
   );
