@@ -1,3 +1,5 @@
+import CopyButton from './CopyButton';
+
 export default function NFTCard({ record, onClick }) {
   return (
     <div
@@ -24,7 +26,10 @@ export default function NFTCard({ record, onClick }) {
         <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#38bdf8', minWidth: 0, wordBreak: 'break-word' }}>
           💉 {record.vaccine_name}
         </span>
-        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }} aria-label={`Token ID ${record.token_id}`}>#{record.token_id}</span>
+        <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'inline-flex', alignItems: 'center' }} aria-label={`Token ID ${record.token_id}`}>
+          #{record.token_id}
+          <CopyButton text={String(record.token_id)} label="token ID" />
+        </span>
       </div>
       <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '0.9rem' }}>
         Date: {record.date_administered}
@@ -32,6 +37,6 @@ export default function NFTCard({ record, onClick }) {
       <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.25rem' }}>
         Issuer: {record.issuer?.slice(0, 8)}…{record.issuer?.slice(-4)}
       </p>
-    </article>
+    </div>
   );
 }

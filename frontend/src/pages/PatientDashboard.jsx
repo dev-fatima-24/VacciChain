@@ -5,6 +5,7 @@ import { usePagination } from '../hooks/usePagination';
 import NFTCard from '../components/NFTCard';
 import NFTCardSkeleton from '../components/NFTCardSkeleton';
 import RecordDetailModal from '../components/RecordDetailModal';
+import CopyButton from '../components/CopyButton';
 
 const styles = {
   page: { maxWidth: 700, margin: '2rem auto', padding: '0 1rem' },
@@ -52,7 +53,10 @@ export default function PatientDashboard() {
           <span style={{ color: '#64748b', fontSize: '0.85rem' }}>{total} record{total !== 1 ? 's' : ''}</span>
         )}
       </div>
-      <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem', wordBreak: 'break-all' }}>Wallet: {publicKey}</p>
+      <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem', wordBreak: 'break-all' }}>
+        Wallet: {publicKey}
+        <CopyButton text={publicKey} label="wallet address" />
+      </p>
 
       {loading && <NFTCardSkeleton count={3} />}
       {!loading && error && (
