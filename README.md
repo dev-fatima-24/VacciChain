@@ -226,7 +226,7 @@ docker compose up --build
 git clone https://github.com/your-org/vacci-chain.git
 cd vacci-chain
 cp .env.example .env
-# Fill in your Stellar keys and contract IDs
+# Fill in your Stellar keys and contract IDs in .env
 ```
 
 ### 2. Deploy the contract
