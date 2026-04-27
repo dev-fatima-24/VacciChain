@@ -21,6 +21,9 @@ const schema = z.object({
   SOROBAN_FEE: z.coerce.number().int().positive().default(100),
   SOROBAN_TIP: z.coerce.number().int().min(0).default(0),
 
+  // Request limits
+  BODY_LIMIT: z.string().default('10kb'),
+
   // Indexer
   EVENT_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(15000),
   DATABASE_PATH: z.string().default('/data/vaccichain.db'),

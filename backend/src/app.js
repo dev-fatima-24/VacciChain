@@ -14,7 +14,7 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: config.BODY_LIMIT }));
 
 // Request logging middleware
 app.use((req, _res, next) => {
