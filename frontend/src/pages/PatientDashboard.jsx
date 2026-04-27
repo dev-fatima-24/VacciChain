@@ -23,15 +23,21 @@ export default function PatientDashboard() {
   const { publicKey, connect } = useAuth();
   const { fetchRecords, loading } = useVaccination();
   const [records, setRecords] = useState([]);
+  const [error, setError] = useState(null);
   const { currentItems, page, totalPages, goTo, reset, total } = usePagination(records);
 
   const load = useCallback(() => {
     if (!publicKey) return;
-    fetchRecords(publicKey).then((data) => {
-      reset();
-      if (data) setRecords(data.records || []);
-    });
-  }, [publicKey, fetchRecords]);
+    fetchRecords(publicKey)
+      .then((data) => {
+        setError(null);
+        reset();
+        if (data) setRecords(data.records || []);
+      })
+      .catch((err) => {
+        setError(err.message || 'Failed to fetch records');
+      });
+  }, [publicKey, fetchRecords, reset]);
 
   useEffect(() => { load(); }, [load]);
 

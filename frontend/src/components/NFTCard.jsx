@@ -5,6 +5,7 @@ export default function NFTCard({ record, onClick }) {
 
   return (
     <div
+      data-testid="nft-card"
       role="button"
       tabIndex={0}
       onClick={onClick}
