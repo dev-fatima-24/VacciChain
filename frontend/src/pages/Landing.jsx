@@ -1,11 +1,12 @@
 import { useAuth } from '../hooks/useFreighter';
+import { STELLAR_NETWORK } from '../config';
 
 const styles = {
   page: { maxWidth: 700, margin: '4rem auto', padding: '0 1rem', textAlign: 'center' },
   title: { fontSize: '3rem', fontWeight: 700, color: 'var(--accent)', marginBottom: '1rem' },
   sub: { color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '2rem' },
   btn: { padding: '0.75rem 2rem', background: 'var(--btn-primary)', color: '#fff', border: 'none', borderRadius: 8, fontSize: '1rem' },
-  info: { marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem' },
+  info: { marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem', textTransform: 'capitalize' },
 };
 
 export default function Landing() {
@@ -31,7 +32,7 @@ export default function Landing() {
           Connect Freighter Wallet
         </button>
       )}
-      <p style={styles.info}>Requires Freighter browser extension on Stellar Testnet.</p>
+      <p style={styles.info}>Requires Freighter browser extension on Stellar {STELLAR_NETWORK}.</p>
     </div>
   );
 }

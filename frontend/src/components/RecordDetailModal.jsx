@@ -1,4 +1,4 @@
-const STELLAR_EXPERT_BASE = 'https://stellar.expert/explorer/testnet/tx';
+import { STELLAR_EXPERT_TX_URL } from '../config';
 
 const overlay = {
   position: 'fixed', inset: 0,
@@ -40,7 +40,7 @@ export default function RecordDetailModal({ record, onClose }) {
   };
 
   const explorerUrl = record.tx_hash
-    ? `${STELLAR_EXPERT_BASE}/${record.tx_hash}`
+    ? `${STELLAR_EXPERT_TX_URL}/${record.tx_hash}`
     : null;
 
   return (
