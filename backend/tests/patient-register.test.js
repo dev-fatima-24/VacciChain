@@ -9,13 +9,8 @@ jest.mock('../src/stellar/soroban', () => ({
 
 const { invokeContract } = require('../src/stellar/soroban');
 
-function makeToken(overrides = {}) {
-  return jwt.sign(
-    { sub: 'GTEST', role: 'patient', wallet: 'GTEST', ...overrides },
-    process.env.JWT_SECRET || 'test-secret',
-    { expiresIn: '1h' }
-  );
-}
+const { jwtFactory } = require('./factories');
+
 
 describe('POST /patient/register', () => {
   beforeEach(() => {
@@ -32,7 +27,7 @@ describe('POST /patient/register', () => {
   });
 
   it('registers successfully with a valid patient JWT', async () => {
-    const token = makeToken();
+    const token = jwtFactory({ role: 'patient' });
     const res = await request(app)
       .post('/patient/register')
       .set('Authorization', `Bearer ${token}`);
@@ -47,7 +42,7 @@ describe('POST /patient/register', () => {
 
   it('returns 500 when contract invocation fails', async () => {
     invokeContract.mockRejectedValue(new Error('contract error'));
-    const token = makeToken();
+    const token = jwtFactory({ role: 'patient' });
     const res = await request(app)
       .post('/patient/register')
       .set('Authorization', `Bearer ${token}`);

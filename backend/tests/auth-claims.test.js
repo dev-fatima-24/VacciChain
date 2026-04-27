@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
 const authMiddleware = require('../src/middleware/auth');
+const { jwtFactory } = require('./factories');
 
 describe('JWT Claims Validation Middleware', () => {
   const JWT_SECRET = 'test-jwt-secret';
@@ -17,13 +17,10 @@ describe('JWT Claims Validation Middleware', () => {
     next = jest.fn();
   });
 
-  const createToken = (payload) => {
-    return jwt.sign(payload, JWT_SECRET);
-  };
-
   const setAuthHeader = (token) => {
     req.headers.authorization = `Bearer ${token}`;
   };
+
 
   it('passes when all required claims are present and valid', () => {
     const payload = {
@@ -32,7 +29,7 @@ describe('JWT Claims Validation Middleware', () => {
       wallet: 'GB...',
       exp: Math.floor(Date.now() / 1000) + 3600,
     };
-    setAuthHeader(createToken(payload));
+    setAuthHeader(jwtFactory(payload));
 
     authMiddleware(req, res, next);
 
@@ -46,7 +43,7 @@ describe('JWT Claims Validation Middleware', () => {
       wallet: 'GB...',
       exp: Math.floor(Date.now() / 1000) + 3600,
     };
-    setAuthHeader(createToken(payload));
+    setAuthHeader(jwtFactory(payload));
 
     authMiddleware(req, res, next);
 
@@ -61,7 +58,7 @@ describe('JWT Claims Validation Middleware', () => {
       wallet: 'GB...',
       exp: Math.floor(Date.now() / 1000) + 3600,
     };
-    setAuthHeader(createToken(payload));
+    setAuthHeader(jwtFactory(payload));
 
     authMiddleware(req, res, next);
 
@@ -76,7 +73,7 @@ describe('JWT Claims Validation Middleware', () => {
       role: 'patient',
       exp: Math.floor(Date.now() / 1000) + 3600,
     };
-    setAuthHeader(createToken(payload));
+    setAuthHeader(jwtFactory(payload));
 
     authMiddleware(req, res, next);
 
@@ -92,7 +89,7 @@ describe('JWT Claims Validation Middleware', () => {
       wallet: 'GB...',
       exp: Math.floor(Date.now() / 1000) + 3600,
     };
-    setAuthHeader(createToken(payload));
+    setAuthHeader(jwtFactory(payload));
 
     authMiddleware(req, res, next);
 

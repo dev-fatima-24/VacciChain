@@ -11,8 +11,10 @@ const vaccinationRoutes = require('./routes/vaccination');
 const verifyRoutes = require('./routes/verify');
 const adminRoutes = require('./routes/admin');
 const patientRoutes = require('./routes/patient');
+const eventsRoutes = require('./routes/events');
 
 const app = express();
+
 
 app.use(cors());
 app.use(express.json({ limit: config.BODY_LIMIT }));
@@ -28,6 +30,8 @@ app.use('/vaccination', vaccinationRoutes);
 app.use('/verify', verifyRoutes);
 app.use('/admin', adminRoutes);
 app.use('/patient', patientRoutes);
+app.use('/events', eventsRoutes);
+
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
