@@ -58,7 +58,7 @@ export default function VerifyPage() {
         <input
           id="wallet-input"
           style={styles.input}
-          placeholder="Enter Stellar wallet address (G...)"
+          placeholder={t('verify.placeholder')}
           value={wallet}
           onChange={(e) => setWallet(e.target.value)}
           aria-label="Stellar wallet address to verify"

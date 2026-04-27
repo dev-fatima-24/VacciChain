@@ -1,6 +1,8 @@
 import CopyButton from './CopyButton';
 
 export default function NFTCard({ record, onClick }) {
+  const { t } = useTranslation();
+
   return (
     <div
       role="button"

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useFreighter';
 import { useVaccination } from '../hooks/useVaccination';
 import ConfirmMintDialog from '../components/ConfirmMintDialog';
@@ -16,24 +17,11 @@ const styles = {
 
 const STELLAR_ADDRESS_RE = /^G[A-Z2-7]{55}$/;
 const today = () => new Date().toISOString().split('T')[0];
-
-function validate(form) {
-  const errors = {};
-  if (!STELLAR_ADDRESS_RE.test(form.patient_address))
-    errors.patient_address = 'Must be a valid Stellar public key (G…, 56 chars)';
-  if (!form.vaccine_name.trim())
-    errors.vaccine_name = 'Vaccine name is required';
-  if (!form.date_administered)
-    errors.date_administered = 'Date is required';
-  else if (form.date_administered > today())
-    errors.date_administered = 'Date cannot be in the future';
-  return errors;
-}
-
 const FORM_KEY = 'issuer_form_draft';
 const EMPTY_FORM = { patient_address: '', vaccine_name: '', date_administered: '' };
 
 export default function IssuerDashboard() {
+  const { t } = useTranslation();
   const { publicKey, role, connect } = useAuth();
   const { issueVaccination, loading } = useVaccination();
 
@@ -49,10 +37,22 @@ export default function IssuerDashboard() {
   const [mintResult, setMintResult] = useState(null);
   const [confirming, setConfirming] = useState(false);
 
+  const validate = (f) => {
+    const errors = {};
+    if (!STELLAR_ADDRESS_RE.test(f.patient_address))
+      errors.patient_address = t('issuer.validation.invalidAddress');
+    if (!f.vaccine_name.trim())
+      errors.vaccine_name = t('issuer.validation.vaccineRequired');
+    if (!f.date_administered)
+      errors.date_administered = t('issuer.validation.dateRequired');
+    else if (f.date_administered > today())
+      errors.date_administered = t('issuer.validation.dateFuture');
+    return errors;
+  };
+
   const errors = validate(form);
   const isValid = Object.keys(errors).length === 0;
 
-  // Persist form draft on every change
   useEffect(() => {
     sessionStorage.setItem(FORM_KEY, JSON.stringify(form));
   }, [form]);
@@ -67,7 +67,7 @@ export default function IssuerDashboard() {
   }
 
   if (role !== 'issuer') {
-    return <div style={styles.page}><p style={{ color: '#f87171' }}>Access denied: issuer role required.</p></div>;
+    return <div style={styles.page}><p style={{ color: '#f87171' }}>{t('issuer.accessDenied')}</p></div>;
   }
 
   const handleSubmit = async (e) => {
@@ -81,9 +81,9 @@ export default function IssuerDashboard() {
   };
 
   const fields = [
-    { key: 'patient_address', label: 'Patient Stellar Address', placeholder: 'G...', type: 'text' },
-    { key: 'vaccine_name', label: 'Vaccine Name', placeholder: 'e.g. COVID-19', type: 'text' },
-    { key: 'date_administered', label: 'Date Administered', placeholder: '', type: 'date' },
+    { key: 'patient_address', label: t('issuer.patientAddress'), placeholder: 'G...', type: 'text' },
+    { key: 'vaccine_name', label: t('issuer.vaccineName'), placeholder: t('issuer.vaccineNamePlaceholder'), type: 'text' },
+    { key: 'date_administered', label: t('issuer.dateAdministered'), placeholder: '', type: 'date' },
   ];
 
   return (

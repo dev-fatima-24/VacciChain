@@ -3,12 +3,13 @@ from collections import defaultdict
 from fastapi import APIRouter, HTTPException
 import httpx
 
-router = APIRouter()
+router = APIRouter(tags=["Analytics"])
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:4000")
 # Anomaly threshold: flag issuers with more than this many mints in the dataset
 ANOMALY_THRESHOLD = int(os.getenv("ANOMALY_THRESHOLD", "50"))
 
+_bearer = HTTPBearer(description="JWT issued by the VacciChain backend via POST /auth/verify")
 
 async def _fetch_events(event_type: str, limit: int = 500) -> list:
     async with httpx.AsyncClient() as client:
