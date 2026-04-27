@@ -54,3 +54,11 @@ pub fn emit_contract_upgraded(env: &Env, new_wasm_hash: &soroban_sdk::BytesN<32>
         (new_wasm_hash.clone(), admin.clone(), timestamp),
     );
 }
+
+pub fn emit_patient_registered(env: &Env, patient: &Address) {
+    let timestamp = env.ledger().timestamp();
+    env.events().publish(
+        (symbol_short!("pat_reg"),),
+        (patient.clone(), timestamp),
+    );
+}

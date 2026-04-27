@@ -47,6 +47,7 @@ pub enum ContractError {
     InvalidInputLicense = 13,
     InvalidInputCountry = 14,
     SoulboundToken = 15,
+    PatientNotRegistered = 16,
 }
 
 const MAX_STRING_LENGTH: u32 = 100;
@@ -155,6 +156,25 @@ impl VacciChainContract {
                 .set(&DataKey::IssuerMeta(hash_address(&env, &issuer)), &record);
         }
         Ok(())
+    }
+
+    /// Patient: self-register wallet into the allowlist (requires patient auth via SEP-10 JWT).
+    /// Must be called before an issuer can mint to this address.
+    pub fn register_patient(env: Env, patient: Address) -> Result<(), ContractError> {
+        patient.require_auth();
+        env.storage()
+            .persistent()
+            .set(&DataKey::PatientAllowlist(patient.clone()), &true);
+        events::emit_patient_registered(&env, &patient);
+        Ok(())
+    }
+
+    /// Public: check whether a wallet has self-registered.
+    pub fn is_patient_registered(env: Env, patient: Address) -> bool {
+        env.storage()
+            .persistent()
+            .get::<DataKey, bool>(&DataKey::PatientAllowlist(patient))
+            .unwrap_or(false)
     }
 
     /// Issuer: mint a soulbound vaccination NFT.

@@ -97,4 +97,5 @@ pub enum DataKey {
     PatientTokens(Address),
     Token(u64),
     Revoked(u64),
+    PatientAllowlist(Address),
 }
