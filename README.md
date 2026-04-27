@@ -19,6 +19,20 @@ VacciChain lets governments and healthcare providers issue vaccination records a
 
 ---
 
+## 🌐 Public Demo Environment
+
+You can explore VacciChain without setting up a local environment by visiting our live testnet demo.
+
+* **Network:** Stellar Testnet
+* **Reset Schedule:** Weekly (Every Sunday at 00:00 UTC)
+
+### Testing as an Issuer
+To evaluate the issuer flow (minting and revoking records), you can connect your Freighter wallet using testnet credentials. **Ensure your wallet is set to Testnet.**
+
+> **⚠️ Security Warning:** The demo database and contract state are wiped periodically.
+
+---
+
 ##  Architecture
 
 ```
