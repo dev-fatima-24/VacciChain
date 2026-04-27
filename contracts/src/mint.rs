@@ -28,6 +28,16 @@ pub fn mint_vaccination(
         return Err(ContractError::Unauthorized);
     }
 
+    // Check patient has self-registered
+    let is_registered: bool = env
+        .storage()
+        .persistent()
+        .get::<DataKey, bool>(&DataKey::PatientAllowlist(patient.clone()))
+        .unwrap_or(false);
+    if !is_registered {
+        return Err(ContractError::PatientNotRegistered);
+    }
+
     // Compute deterministic token_id:
     //   SHA-256(patient_xdr || vaccine_name || date_administered || issuer_xdr || ledger_sequence)
     //   truncated to first 8 bytes as big-endian u64.
