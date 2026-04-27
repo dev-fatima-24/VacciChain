@@ -42,7 +42,7 @@ export default function RecordDetailModal({ record, onClose }) {
   };
 
   const explorerUrl = record.tx_hash
-    ? `${STELLAR_EXPERT_BASE}/${record.tx_hash}`
+    ? `${STELLAR_EXPERT_TX_URL}/${record.tx_hash}`
     : null;
 
   return (

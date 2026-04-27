@@ -6,6 +6,8 @@ import {
 } from '@stellar/freighter-api';
 import { useToast } from './useToast';
 
+import { STELLAR_NETWORK } from '../config';
+
 const AuthContext = createContext(null);
 const STORAGE_KEY = 'vaccichain_wallet';
 
@@ -23,7 +25,7 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ public_key: pk }),
     });
     const { transaction, nonce } = await challengeRes.json();
-    const signedXDR = await signTransaction(transaction, { network: 'TESTNET' });
+    const signedXDR = await signTransaction(transaction, { network: STELLAR_NETWORK.toUpperCase() });
     const verifyRes = await fetch('/auth/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
