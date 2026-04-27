@@ -1,12 +1,13 @@
 const StellarSdk = require('@stellar/stellar-sdk');
+const config = require('../config');
+const logger = require('../logger');
 
-const SOROBAN_RPC_URL = process.env.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
-const NETWORK_PASSPHRASE =
-  process.env.STELLAR_NETWORK === 'mainnet'
-    ? StellarSdk.Networks.PUBLIC
-    : StellarSdk.Networks.TESTNET;
-
-const CONTRACT_ID = process.env.VACCINATIONS_CONTRACT_ID;
+const {
+  SOROBAN_RPC_URL,
+  STELLAR_NETWORK_PASSPHRASE: NETWORK_PASSPHRASE,
+  VACCINATIONS_CONTRACT_ID: CONTRACT_ID,
+  SOROBAN_RPC_MAX_RETRIES,
+} = config;
 
 // Fee in stroops (1 XLM = 10_000_000 stroops). Minimum is 100.
 const TX_FEE = String(process.env.SOROBAN_FEE || 100);
@@ -18,6 +19,58 @@ function getRpcServer() {
 }
 
 /**
+ * Helper to retry RPC calls with exponential backoff.
+ * @param {Function} fn - The RPC call to execute
+ * @param {string} context - Context for logging
+ */
+async function withRetry(fn, context = '') {
+  let lastError;
+  for (let attempt = 0; attempt <= SOROBAN_RPC_MAX_RETRIES; attempt++) {
+    try {
+      if (attempt > 0) {
+        const backoff = Math.pow(2, attempt - 1) * 100; // 100ms, 200ms, 400ms
+        logger.info(`Retrying Soroban RPC call`, {
+          context,
+          attempt,
+          maxRetries: SOROBAN_RPC_MAX_RETRIES,
+          backoffMs: backoff,
+        });
+        await new Promise((resolve) => setTimeout(resolve, backoff));
+      }
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      // Don't retry 4xx errors as they are likely client-side/contract logic errors
+      const status = error.response?.status;
+      if (status && status >= 400 && status < 500) {
+        logger.warn(`Non-retryable Soroban RPC error`, {
+          context,
+          status,
+          message: error.message,
+        });
+        throw error;
+      }
+
+      if (attempt === SOROBAN_RPC_MAX_RETRIES) {
+        logger.error(`Soroban RPC call failed after maximum retries`, {
+          context,
+          attempt,
+          message: error.message,
+        });
+      } else {
+        logger.debug(`Soroban RPC call transient failure`, {
+          context,
+          attempt,
+          message: error.message,
+        });
+      }
+    }
+  }
+  throw lastError;
+}
+
+/**
  * Invoke a Soroban contract function.
  * @param {string} secretKey - Caller's secret key
  * @param {string} method - Contract method name
@@ -26,7 +79,7 @@ function getRpcServer() {
 async function invokeContract(secretKey, method, args) {
   const rpc = getRpcServer();
   const keypair = StellarSdk.Keypair.fromSecret(secretKey);
-  const account = await rpc.getAccount(keypair.publicKey());
+  const account = await withRetry(() => rpc.getAccount(keypair.publicKey()), 'getAccount');
 
   const contract = new StellarSdk.Contract(CONTRACT_ID);
 
@@ -41,10 +94,10 @@ async function invokeContract(secretKey, method, args) {
     .setTimeout(30)
     .build();
 
-  const prepared = await rpc.prepareTransaction(tx);
+  const prepared = await withRetry(() => rpc.prepareTransaction(tx), 'prepareTransaction');
   prepared.sign(keypair);
 
-  const response = await rpc.sendTransaction(prepared);
+  const response = await withRetry(() => rpc.sendTransaction(prepared), 'sendTransaction');
   if (response.status === 'ERROR') {
     const errDetail = JSON.stringify(response.errorResult);
     if (errDetail.includes('txINSUFFICIENT_FEE') || errDetail.includes('fee')) {
@@ -60,7 +113,7 @@ async function invokeContract(secretKey, method, args) {
   let result;
   for (let i = 0; i < 10; i++) {
     await new Promise((r) => setTimeout(r, 2000));
-    result = await rpc.getTransaction(response.hash);
+    result = await withRetry(() => rpc.getTransaction(response.hash), 'getTransaction');
     if (result.status !== 'NOT_FOUND') break;
   }
 
@@ -90,7 +143,7 @@ async function simulateContract(method, args) {
     .setTimeout(30)
     .build();
 
-  const sim = await rpc.simulateTransaction(tx);
+  const sim = await withRetry(() => rpc.simulateTransaction(tx), 'simulateTransaction');
   if (StellarSdk.SorobanRpc.Api.isSimulationError(sim)) {
     throw new Error(`Simulation failed: ${sim.error}`);
   }

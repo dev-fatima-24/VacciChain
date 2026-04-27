@@ -1,25 +1,42 @@
 const express = require('express');
+const { z } = require('zod');
 const StellarSdk = require('@stellar/stellar-sdk');
 const authMiddleware = require('../middleware/auth');
 const issuerMiddleware = require('../middleware/issuer');
 const { validateStellarPublicKey } = require('../middleware/wallet');
 const { invokeContract, simulateContract } = require('../stellar/soroban');
 const { audit } = require('../middleware/auditLog');
+const validate = require('../middleware/validate');
 
 const router = express.Router();
+
+const issueSchema = z.object({
+  patient_address: z.string().refine((val) => {
+    try {
+      StellarSdk.Address.fromString(val);
+      return true;
+    } catch {
+      return false;
+    }
+  }, { message: 'Invalid Stellar address' }),
+  vaccine_name: z.string().min(1, 'vaccine_name is required'),
+  date_administered: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: 'Invalid date format',
+  }),
+});
+
+const revokeSchema = z.object({
+  token_id: z.union([z.string(), z.number()]).transform((val) => String(val)),
+});
 
 // POST /vaccination/issue — mint NFT (issuer only)
 router.post(
   '/issue',
   authMiddleware,
   issuerMiddleware,
-  validateStellarPublicKey('body', 'patient_address'),
+  validate(issueSchema),
   async (req, res) => {
   const { patient_address, vaccine_name, date_administered } = req.body;
-
-  if (!patient_address || !vaccine_name || !date_administered) {
-    return res.status(400).json({ error: 'patient_address, vaccine_name, date_administered required' });
-  }
 
   try {
     const args = [
@@ -58,12 +75,9 @@ router.post(
   '/revoke',
   authMiddleware,
   issuerMiddleware,
+  validate(revokeSchema),
   async (req, res) => {
     const { token_id } = req.body;
-
-    if (token_id === undefined || token_id === null) {
-      return res.status(400).json({ error: 'token_id required' });
-    }
 
     try {
       const args = [

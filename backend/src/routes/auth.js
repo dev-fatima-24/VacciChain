@@ -1,22 +1,33 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const { z } = require('zod');
 const StellarSdk = require('@stellar/stellar-sdk');
 const { buildChallenge, verifyChallenge } = require('../stellar/sep10');
 const { sep10Limiter } = require('../middleware/rateLimiter');
 const { audit } = require('../middleware/auditLog');
+const validate = require('../middleware/validate');
 
 const router = express.Router();
 
-// POST /auth/sep10 — generate challenge
-router.post('/sep10', sep10Limiter, async (req, res) => {
-  const { public_key } = req.body;
-  if (!public_key) return res.status(400).json({ error: 'public_key required' });
+const sep10Schema = z.object({
+  public_key: z.string().refine((val) => {
+    try {
+      StellarSdk.Keypair.fromPublicKey(val);
+      return true;
+    } catch {
+      return false;
+    }
+  }, { message: 'Invalid Stellar public key' }),
+});
 
-  try {
-    StellarSdk.Keypair.fromPublicKey(public_key); // validate format
-  } catch {
-    return res.status(400).json({ error: 'Invalid Stellar public key' });
-  }
+const verifySchema = z.object({
+  transaction: z.string().min(1, 'transaction is required'),
+  nonce: z.string().min(1, 'nonce is required'),
+});
+
+// POST /auth/sep10 — generate challenge
+router.post('/sep10', sep10Limiter, validate(sep10Schema), async (req, res) => {
+  const { public_key } = req.body;
 
   try {
     const { transaction, nonce } = await buildChallenge(public_key);
@@ -27,11 +38,8 @@ router.post('/sep10', sep10Limiter, async (req, res) => {
 });
 
 // POST /auth/verify — verify signed challenge, issue JWT
-router.post('/verify', (req, res) => {
+router.post('/verify', validate(verifySchema), (req, res) => {
   const { transaction, nonce } = req.body;
-  if (!transaction || !nonce) {
-    return res.status(400).json({ error: 'transaction and nonce required' });
-  }
 
   try {
     const publicKey = verifyChallenge(transaction, nonce);

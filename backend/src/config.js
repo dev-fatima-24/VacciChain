@@ -5,6 +5,7 @@ const schema = z.object({
   STELLAR_NETWORK: z.enum(['testnet', 'mainnet']).default('testnet'),
   HORIZON_URL: z.string().url(),
   SOROBAN_RPC_URL: z.string().url(),
+  SOROBAN_RPC_MAX_RETRIES: z.coerce.number().int().nonnegative().default(3),
   STELLAR_NETWORK_PASSPHRASE: z.string().min(1),
 
   // Contract

@@ -3,6 +3,8 @@ const config = require('./config');
 const express = require('express');
 const cors = require('cors');
 const logger = require('./logger');
+const { initDb } = require('./indexer/db');
+const { startPoller, stopPoller } = require('./indexer/poller');
 
 const authRoutes = require('./routes/auth');
 const vaccinationRoutes = require('./routes/vaccination');
@@ -30,7 +32,29 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 if (require.main === module) {
   initDb(config.DATABASE_PATH).then(() => {
     startPoller(config.EVENT_POLL_INTERVAL_MS);
-    app.listen(config.PORT, () => console.log(`Backend running on port ${config.PORT}`));
+    const server = app.listen(config.PORT, () => {
+      logger.info(`Backend running on port ${config.PORT}`);
+    });
+
+    const gracefulShutdown = (signal) => {
+      logger.info(`${signal} received. Starting graceful shutdown...`);
+      
+      stopPoller();
+
+      server.close(() => {
+        logger.info('Http server closed.');
+        process.exit(0);
+      });
+
+      // Force exit after 10 seconds
+      setTimeout(() => {
+        logger.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, 10000);
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   });
 }
 
