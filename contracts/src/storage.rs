@@ -94,7 +94,7 @@ pub enum DataKey {
     PendingAdmin,
     AdminTransferExpiry,
     Issuer(Address),
-    PatientTokens(BytesN<32>),
+    PatientTokens(Address),
     Token(u64),
     Revoked(u64),
 }

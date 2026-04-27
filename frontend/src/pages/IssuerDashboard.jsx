@@ -46,7 +46,7 @@ export default function IssuerDashboard() {
     }
   });
   const [touched, setTouched] = useState({});
-  const [success, setSuccess] = useState(null);
+  const [mintResult, setMintResult] = useState(null);
   const [confirming, setConfirming] = useState(false);
 
   const errors = validate(form);
@@ -70,10 +70,11 @@ export default function IssuerDashboard() {
     return <div style={styles.page}><p style={{ color: '#f87171' }}>Access denied: issuer role required.</p></div>;
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await issueVaccination(form);
     if (result) {
+      setMintResult(result);
       setForm(EMPTY_FORM);
       sessionStorage.removeItem(FORM_KEY);
     }
@@ -111,8 +112,20 @@ export default function IssuerDashboard() {
         </button>
       </form>
       <div aria-live="polite" aria-atomic="true">
-        {error && <p style={{ color: '#f87171', marginTop: '1rem' }} role="alert">Error: {error}</p>}
-        {success && <p style={{ color: '#4ade80', marginTop: '1rem' }}>✅ {success}</p>}
+        {mintResult && (
+          <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: '#0f172a', borderRadius: 8, color: '#4ade80' }}>
+            <p>✅ Vaccination NFT minted!</p>
+            <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>Token ID: {mintResult.tokenId}</p>
+            <a
+              href={`https://stellar.expert/explorer/testnet/tx/${mintResult.transactionHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: '0.85rem', color: '#0ea5e9' }}
+            >
+              View on Stellar Explorer ↗
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

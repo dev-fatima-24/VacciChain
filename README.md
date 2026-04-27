@@ -1,5 +1,7 @@
 #  Vacci-Chain
 
+[![CI](https://github.com/EDOHWARES/VacciChain/actions/workflows/ci.yml/badge.svg)](https://github.com/EDOHWARES/VacciChain/actions/workflows/ci.yml)
+
 > Blockchain-based vaccination records on Stellar — soulbound, verifiable, tamper-proof.
 
 VacciChain lets governments and healthcare providers issue vaccination records as non-transferable NFTs (soulbound tokens) on the Stellar network via Soroban smart contracts. Patients hold records in their Stellar wallets. Schools, employers, and border agencies verify status on-chain — no central database, no forgery.

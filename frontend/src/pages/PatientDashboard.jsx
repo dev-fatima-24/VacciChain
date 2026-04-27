@@ -8,8 +8,6 @@ import RecordDetailModal from '../components/RecordDetailModal';
 import CopyButton from '../components/CopyButton';
 
 const styles = {
-  page: { maxWidth: 700, margin: '2rem auto', padding: '0 1rem' },
-  btn: { padding: '0.6rem 1.5rem', background: 'var(--btn-primary)', color: '#fff', border: 'none', borderRadius: 8 },
   page: { maxWidth: 700, width: '100%', margin: '2rem auto', padding: '0 1rem', boxSizing: 'border-box' },
   btn: { padding: '0.6rem 1.5rem', background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' },
   controls: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem', marginTop: '1.25rem' },
