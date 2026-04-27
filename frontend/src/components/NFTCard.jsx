@@ -1,6 +1,6 @@
 import CopyButton from './CopyButton';
 
-export default function NFTCard({ record, onClick }) {
+export default function NFTCard({ record, onClick, onShowQR }) {
   const { t } = useTranslation();
 
   return (
@@ -39,6 +39,20 @@ export default function NFTCard({ record, onClick }) {
       <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.25rem' }}>
         Issuer: {record.issuer?.slice(0, 8)}…{record.issuer?.slice(-4)}
       </p>
+      {onShowQR && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onShowQR(record); }}
+          aria-label={`Show QR code for ${record.vaccine_name} token ${record.token_id}`}
+          style={{
+            marginTop: '0.75rem', padding: '0.35rem 0.9rem',
+            background: '#0f172a', color: '#38bdf8',
+            border: '1px solid #38bdf8', borderRadius: 6,
+            cursor: 'pointer', fontSize: '0.8rem',
+          }}
+        >
+          Show QR
+        </button>
+      )}
     </div>
   );
 }
