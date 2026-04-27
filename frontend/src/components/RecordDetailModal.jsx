@@ -1,4 +1,6 @@
-import { STELLAR_EXPERT_TX_URL } from '../config';
+import CopyButton from './CopyButton';
+
+const STELLAR_EXPERT_BASE = 'https://stellar.expert/explorer/testnet/tx';
 
 const overlay = {
   position: 'fixed', inset: 0,
@@ -73,18 +75,27 @@ export default function RecordDetailModal({ record, onClose }) {
 
         <div style={row}>
           <p style={label}>Token ID</p>
-          <p style={value}>#{record.token_id}</p>
+          <p style={value}>
+            #{record.token_id}
+            <CopyButton text={String(record.token_id)} label="token ID" />
+          </p>
         </div>
 
         <div style={row}>
           <p style={label}>Issuer Address</p>
-          <p style={value}>{record.issuer}</p>
+          <p style={value}>
+            {record.issuer}
+            <CopyButton text={record.issuer} label="issuer address" />
+          </p>
         </div>
 
         {record.tx_hash && (
           <div style={row}>
             <p style={label}>Transaction Hash</p>
-            <p style={value}>{record.tx_hash}</p>
+            <p style={value}>
+              {record.tx_hash}
+              <CopyButton text={record.tx_hash} label="transaction hash" />
+            </p>
           </div>
         )}
 

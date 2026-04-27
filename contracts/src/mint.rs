@@ -1,5 +1,4 @@
 use soroban_sdk::{Env, Address, String, Vec};
-use crate::storage::{DataKey, VaccinationRecord, hash_address};
 use crate::storage::{DataKey, VaccinationRecord, IssuerRecord};
 use crate::events;
 use crate::ContractError;
@@ -22,7 +21,6 @@ pub fn mint_vaccination(
     let is_authorized: bool = env
         .storage()
         .persistent()
-        .get(&DataKey::Issuer(hash_address(env, &issuer)))
         .get::<DataKey, IssuerRecord>(&DataKey::Issuer(issuer.clone()))
         .map(|r| r.authorized)
         .unwrap_or(false);
@@ -34,7 +32,7 @@ pub fn mint_vaccination(
     let tokens: Vec<u64> = env
         .storage()
         .persistent()
-        .get(&DataKey::PatientTokens(hash_address(env, &patient)))
+        .get(&DataKey::PatientTokens(patient.clone()))
         .unwrap_or(Vec::new(env));
 
     for i in 0..tokens.len() {
@@ -73,7 +71,7 @@ pub fn mint_vaccination(
     // Update patient token list
     let mut patient_tokens = tokens;
     patient_tokens.push_back(token_id);
-    env.storage().persistent().set(&DataKey::PatientTokens(hash_address(env, &patient)), &patient_tokens);
+    env.storage().persistent().set(&DataKey::PatientTokens(patient.clone()), &patient_tokens);
 
     // Increment next token ID
     env.storage().persistent().set(&DataKey::NextTokenId, &(token_id + 1));
