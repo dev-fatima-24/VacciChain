@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+frontend/package-lock.json
 
 # Build outputs
 dist/

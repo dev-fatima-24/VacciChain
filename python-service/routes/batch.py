@@ -1,37 +1,45 @@
-import httpx
 import os
-from fastapi import APIRouter
-from pydantic import BaseModel
-from typing import List
+import httpx
+from fastapi import APIRouter, HTTPException
+from schemas import BatchVerifyRequest, BatchVerifyResponse, WalletResult
 
-router = APIRouter()
+router = APIRouter(tags=["Batch"])
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:4000")
 
 
-class BatchVerifyRequest(BaseModel):
-    wallets: List[str]
-
-
-@router.post("/verify")
+@router.post(
+    "/verify",
+    response_model=BatchVerifyResponse,
+    summary="Bulk verify Stellar wallet vaccination status",
+    description=(
+        "Accepts up to **100** Stellar public-key addresses and returns the vaccination "
+        "status for each one by querying the on-chain verification endpoint.\n\n"
+        "- Each address must be a valid Stellar public key starting with `G`.\n"
+        "- Wallets that cannot be reached are returned with an `error` field instead of "
+        "`vaccinated`/`record_count`.\n\n"
+        "**Auth:** No authentication required — mirrors the public `/verify/:wallet` endpoint."
+    ),
+    responses={
+        400: {"description": "Request contains more than 100 wallets"},
+    },
+)
 async def batch_verify(request: BatchVerifyRequest):
-    """Bulk verify a list of Stellar wallet addresses."""
     if len(request.wallets) > 100:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Maximum 100 wallets per request")
 
-    results = []
+    results: list[WalletResult] = []
     async with httpx.AsyncClient() as client:
         for wallet in request.wallets:
             try:
                 res = await client.get(f"{BACKEND_URL}/verify/{wallet}", timeout=10)
                 data = res.json()
-                results.append({
-                    "wallet": wallet,
-                    "vaccinated": data.get("vaccinated", False),
-                    "record_count": data.get("record_count", 0),
-                })
+                results.append(WalletResult(
+                    wallet=wallet,
+                    vaccinated=data.get("vaccinated", False),
+                    record_count=data.get("record_count", 0),
+                ))
             except Exception as e:
-                results.append({"wallet": wallet, "error": str(e)})
+                results.append(WalletResult(wallet=wallet, error=str(e)))
 
-    return {"results": results, "total": len(results)}
+    return BatchVerifyResponse(results=results, total=len(results))
