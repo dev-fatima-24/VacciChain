@@ -1,4 +1,15 @@
    Compiling vaccichain v0.1.0 (/home/edohwares/Desktop/Room/drips/VacciChain/contracts)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.26s
+     Running unittests src/lib.rs (target/debug/deps/vaccichain-4929fd35c9a9e16d)
+
+running 7 tests
+test tests::test_double_init_rejected ... ok
+test tests::test_unauthorized_issuer_blocked - should panic ... ok
+test tests::test_transfer_blocked - should panic ... ok
+test tests::test_accept_admin_expired ... ok
+test tests::test_propose_and_accept_admin ... ok
+test tests::test_duplicate_record_blocked - should panic ... ok
+test tests::test_mint_and_verify ... ok
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.77s
      Running unittests src/lib.rs (target/debug/deps/vaccichain-4929fd35c9a9e16d)
 

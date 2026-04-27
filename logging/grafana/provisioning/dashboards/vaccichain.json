@@ -1,0 +1,56 @@
+{
+  "title": "VacciChain Logs",
+  "uid": "vaccichain-logs",
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Error Rate (errors/min)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(rate({service=~\"backend|python-service\"} |= \"error\" [1m])) by (service)",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "alert": {
+        "name": "High Error Rate",
+        "message": "Error rate exceeded 10 errors/min",
+        "conditions": [
+          {
+            "type": "query",
+            "query": { "params": ["A", "1m", "now"] },
+            "reducer": { "type": "last" },
+            "evaluator": { "type": "gt", "params": [10] }
+          }
+        ],
+        "frequency": "1m",
+        "handler": 1,
+        "noDataState": "OK",
+        "executionErrorState": "Alerting"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Log Stream",
+      "type": "logs",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 16 },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{service=~\"backend|python-service\"}",
+          "legendFormat": ""
+        }
+      ],
+      "options": {
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending"
+      }
+    }
+  ],
+  "time": { "from": "now-1h", "to": "now" }
+}

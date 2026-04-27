@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "home": "Home",
+    "myRecords": "My Records",
+    "issue": "Issue",
+    "verify": "Verify"
+  },
+  "landing": {
+    "subtitle": "Blockchain-based vaccination records on Stellar — soulbound, verifiable, tamper-proof.",
+    "connected": "✅ Connected: {{address}}",
+    "disconnect": "Disconnect",
+    "connect": "Connect Freighter Wallet",
+    "requiresFreighter": "Requires Freighter browser extension on Stellar Testnet."
+  },
+  "patient": {
+    "connectPrompt": "Connect your wallet to view records.",
+    "connectWallet": "Connect Wallet",
+    "title": "My Vaccination Records",
+    "recordCount_one": "{{count}} record",
+    "recordCount_other": "{{count}} records",
+    "wallet": "Wallet: {{address}}",
+    "loading": "Loading…",
+    "error": "Error: {{message}}",
+    "noRecords": "No vaccination records found.",
+    "prevPage": "‹ Prev",
+    "nextPage": "Next ›",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
+  "issuer": {
+    "connectPrompt": "Connect your issuer wallet.",
+    "connectWallet": "Connect Wallet",
+    "accessDenied": "Access denied: issuer role required.",
+    "title": "Issue Vaccination NFT",
+    "patientAddress": "Patient Stellar Address",
+    "vaccineName": "Vaccine Name",
+    "vaccineNamePlaceholder": "e.g. COVID-19",
+    "dateAdministered": "Date Administered",
+    "submit": "Issue Vaccination NFT",
+    "submitting": "Minting…",
+    "error": "Error: {{message}}",
+    "success": "✅ Vaccination NFT minted! Token ID: {{tokenId}}",
+    "validation": {
+      "invalidAddress": "Must be a valid Stellar public key (G…, 56 chars)",
+      "vaccineRequired": "Vaccine name is required",
+      "dateRequired": "Date is required",
+      "dateFuture": "Date cannot be in the future"
+    }
+  },
+  "verify": {
+    "title": "Verify Vaccination Status",
+    "placeholder": "Enter Stellar wallet address (G...)",
+    "submit": "Verify",
+    "checking": "Checking…",
+    "error": "Error: {{message}}"
+  },
+  "nftCard": {
+    "date": "Date: {{date}}",
+    "issuer": "Issuer: {{address}}"
+  },
+  "badge": {
+    "verified": "Verified: {{count}} Record",
+    "verified_other": "Verified: {{count}} Records",
+    "notFound": "No Records Found",
+    "revoked": "Certificate Revoked",
+    "verifying": "Verifying Status..."
+  },
+  "modal": {
+    "title": "💉 Vaccination Record",
+    "ariaLabel": "Vaccination record details",
+    "close": "Close modal",
+    "vaccineName": "Vaccine Name",
+    "dateAdministered": "Date Administered",
+    "tokenId": "Token ID",
+    "issuerAddress": "Issuer Address",
+    "txHash": "Transaction Hash",
+    "viewExplorer": "View on Stellar Explorer ↗",
+    "noTxHash": "Transaction hash not available for this record."
+  }
+}

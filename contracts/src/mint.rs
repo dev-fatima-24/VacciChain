@@ -2,6 +2,7 @@ use soroban_sdk::{Env, Address, String, Vec};
 use crate::storage::{DataKey, VaccinationRecord, IssuerRecord};
 use crate::events;
 use crate::ContractError;
+use crate::validate_input_length;
 
 pub fn mint_vaccination(
     env: &Env,
@@ -10,6 +11,9 @@ pub fn mint_vaccination(
     date_administered: String,
     issuer: Address,
 ) -> Result<u64, ContractError> {
+    validate_input_length(&vaccine_name, "vaccine_name")?;
+    validate_input_length(&date_administered, "date_administered")?;
+
     // Require issuer auth
     issuer.require_auth();
 
@@ -24,7 +28,25 @@ pub fn mint_vaccination(
         return Err(ContractError::Unauthorized);
     }
 
-    // Duplicate detection: (patient, vaccine_name, date_administered) must be unique
+    // Compute deterministic token_id:
+    //   SHA-256(patient_xdr || vaccine_name || date_administered || issuer_xdr || ledger_sequence)
+    //   truncated to first 8 bytes as big-endian u64.
+    let ledger_sequence = env.ledger().sequence();
+    let token_id = compute_token_id(
+        env,
+        &patient,
+        &vaccine_name,
+        &date_administered,
+        &issuer,
+        ledger_sequence,
+    );
+
+    // Duplicate detection: token_id collision means identical record already exists
+    if env.storage().persistent().has(&DataKey::Token(token_id)) {
+        return Err(ContractError::DuplicateRecord);
+    }
+
+    // Also check patient's existing tokens for same (vaccine_name, date_administered)
     let tokens: Vec<u64> = env
         .storage()
         .persistent()
@@ -43,6 +65,16 @@ pub fn mint_vaccination(
         }
     }
 
+    // Enforce per-patient record limit (default: 50)
+    let limit: u32 = env
+        .storage()
+        .persistent()
+        .get(&DataKey::PatientRecordLimit)
+        .unwrap_or(50u32);
+    if tokens.len() >= limit {
+        panic!("record limit exceeded");
+    }
+
     // Assign token ID
     let token_id: u64 = env
         .storage()
@@ -57,6 +89,8 @@ pub fn mint_vaccination(
         date_administered,
         issuer: issuer.clone(),
         timestamp: env.ledger().timestamp(),
+        schema_version: 1,
+        revoked: false,
     };
 
     // Persist token

@@ -255,49 +255,10 @@
             "key": {
               "vec": [
                 {
-                  "symbol": "NextTokenId"
-                }
-              ]
-            },
-            "durability": "persistent"
-          }
-        },
-        [
-          {
-            "last_modified_ledger_seq": 0,
-            "data": {
-              "contract_data": {
-                "ext": "v0",
-                "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
-                "key": {
-                  "vec": [
-                    {
-                      "symbol": "NextTokenId"
-                    }
-                  ]
-                },
-                "durability": "persistent",
-                "val": {
-                  "u64": 2
-                }
-              }
-            },
-            "ext": "v0"
-          },
-          4095
-        ]
-      ],
-      [
-        {
-          "contract_data": {
-            "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
-            "key": {
-              "vec": [
-                {
                   "symbol": "PatientTokens"
                 },
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4"
+                  "bytes": "03b07df31ca4bcd5754b472170dd2e99570c11b0f73d632d4ad64170ddff48e3"
                 }
               ]
             },
@@ -317,7 +278,7 @@
                       "symbol": "PatientTokens"
                     },
                     {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4"
+                      "bytes": "03b07df31ca4bcd5754b472170dd2e99570c11b0f73d632d4ad64170ddff48e3"
                     }
                   ]
                 },
@@ -325,7 +286,7 @@
                 "val": {
                   "vec": [
                     {
-                      "u64": 1
+                      "u64": 4910784707568727981
                     }
                   ]
                 }
@@ -346,7 +307,7 @@
                   "symbol": "Token"
                 },
                 {
-                  "u64": 1
+                  "u64": 4910784707568727981
                 }
               ]
             },
@@ -366,7 +327,7 @@
                       "symbol": "Token"
                     },
                     {
-                      "u64": 1
+                      "u64": 4910784707568727981
                     }
                   ]
                 },
@@ -399,6 +360,22 @@
                     },
                     {
                       "key": {
+                        "symbol": "revoked"
+                      },
+                      "val": {
+                        "bool": false
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "schema_version"
+                      },
+                      "val": {
+                        "u32": 1
+                      }
+                    },
+                    {
+                      "key": {
                         "symbol": "timestamp"
                       },
                       "val": {
@@ -410,7 +387,7 @@
                         "symbol": "token_id"
                       },
                       "val": {
-                        "u64": 1
+                        "u64": 4910784707568727981
                       }
                     },
                     {
