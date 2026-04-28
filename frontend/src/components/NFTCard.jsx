@@ -1,4 +1,33 @@
+import { useTranslation } from 'react-i18next';
 import CopyButton from './CopyButton';
+
+async function exportCertificate(record) {
+  const [{ jsPDF }, QRCode] = await Promise.all([
+    import('jspdf'),
+    import('qrcode'),
+  ]);
+
+  const verifyUrl = `${window.location.origin}/verify/${record.issuer}`;
+  const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 128, margin: 1 });
+
+  const doc = new jsPDF();
+  doc.setFontSize(20);
+  doc.text('VacciChain Vaccination Certificate', 105, 20, { align: 'center' });
+
+  doc.setFontSize(12);
+  doc.text(`Vaccine: ${record.vaccine_name}`, 20, 45);
+  doc.text(`Date Administered: ${record.date_administered}`, 20, 57);
+  doc.text(`Issuer: ${record.issuer?.slice(0, 8)}…${record.issuer?.slice(-4)}`, 20, 69);
+  doc.text(`Wallet: ${record.patient?.slice(0, 8) ?? 'N/A'}…${record.patient?.slice(-4) ?? ''}`, 20, 81);
+  doc.text(`Token ID: #${record.token_id}`, 20, 93);
+
+  doc.addImage(qrDataUrl, 'PNG', 150, 40, 40, 40);
+  doc.setFontSize(8);
+  doc.text('Scan to verify on-chain', 155, 84);
+
+  const safeName = record.vaccine_name.replace(/\s+/g, '_');
+  doc.save(`VacciChain_${safeName}_${record.date_administered}.pdf`);
+}
 
 export default function NFTCard({ record, onClick }) {
   const { t } = useTranslation();
@@ -39,6 +68,22 @@ export default function NFTCard({ record, onClick }) {
       <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.25rem' }}>
         Issuer: {record.issuer?.slice(0, 8)}…{record.issuer?.slice(-4)}
       </p>
+      <button
+        aria-label={`Export certificate for ${record.vaccine_name}`}
+        onClick={(e) => { e.stopPropagation(); exportCertificate(record); }}
+        style={{
+          marginTop: '0.75rem',
+          padding: '0.35rem 0.85rem',
+          fontSize: '0.8rem',
+          background: 'transparent',
+          border: '1px solid #38bdf8',
+          borderRadius: 6,
+          color: '#38bdf8',
+          cursor: 'pointer',
+        }}
+      >
+        📄 {t('exportCertificate', 'Export Certificate')}
+      </button>
     </div>
   );
 }
