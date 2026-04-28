@@ -1,0 +1,111 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    name: Deploy to staging environment
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.vaccichain.example.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME_STAGING }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/vaccichain-backend:staging-${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/vaccichain-backend:staging-latest
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/vaccichain-frontend:staging-${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/vaccichain-frontend:staging-latest
+
+      - name: Build and push python-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./python-service
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/vaccichain-python:staging-${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/vaccichain-python:staging-latest
+
+      - name: Update ECS task definition - backend
+        id: task-def-backend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: staging/task-definition-backend.json
+          container-name: backend
+          image: ${{ steps.login-ecr.outputs.registry }}/vaccichain-backend:staging-${{ github.sha }}
+
+      - name: Update ECS task definition - frontend
+        id: task-def-frontend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def-backend.outputs.task-definition }}
+          container-name: frontend
+          image: ${{ steps.login-ecr.outputs.registry }}/vaccichain-frontend:staging-${{ github.sha }}
+
+      - name: Update ECS task definition - python-service
+        id: task-def-final
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def-frontend.outputs.task-definition }}
+          container-name: python-service
+          image: ${{ steps.login-ecr.outputs.registry }}/vaccichain-python:staging-${{ github.sha }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def-final.outputs.task-definition }}
+          service: vaccichain-staging
+          cluster: vaccichain-staging
+          wait-for-service-stability: true
+
+      - name: Run smoke tests
+        run: |
+          echo "Waiting for service to stabilize..."
+          sleep 30
+          
+          STAGING_URL="https://staging.vaccichain.example.com"
+          
+          echo "Testing health endpoint..."
+          curl -f "$STAGING_URL/health" || exit 1
+          
+          echo "Testing verify endpoint..."
+          curl -f "$STAGING_URL/verify/GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4" || exit 1
+          
+          echo "✅ Smoke tests passed"
+
+      - name: Post deployment summary
+        run: |
+          echo "### Staging Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** Staging" >> $GITHUB_STEP_SUMMARY
+          echo "- **Network:** Stellar Testnet" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** https://staging.vaccichain.example.com" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed by:** \`${{ github.actor }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** $(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_STEP_SUMMARY
