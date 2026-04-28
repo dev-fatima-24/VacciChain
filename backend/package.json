@@ -11,6 +11,7 @@
     "load-test:baseline": "k6 run -e BASE_URL=http://localhost:4000 -e VUS=100 -e DURATION=60s load-test.js"
   },
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.500.0",
     "@stellar/stellar-sdk": "^12.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

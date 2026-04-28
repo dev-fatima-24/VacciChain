@@ -1,4 +1,5 @@
 require('dotenv').config();
+const { initializeSecrets } = require('./secrets');
 const config = require('./config');
 const express = require('express');
 const cors = require('cors');
@@ -51,31 +52,36 @@ app.use('/patient', patientRoutes);
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 if (require.main === module) {
-  initDb(config.DATABASE_PATH).then(() => {
-    startPoller(config.EVENT_POLL_INTERVAL_MS);
-    const server = app.listen(config.PORT, () => {
-      logger.info(`Backend running on port ${config.PORT}`);
-    });
-
-    const gracefulShutdown = (signal) => {
-      logger.info(`${signal} received. Starting graceful shutdown...`);
-      
-      stopPoller();
-
-      server.close(() => {
-        logger.info('Http server closed.');
-        process.exit(0);
+  initializeSecrets().then(() => {
+    initDb(config.DATABASE_PATH).then(() => {
+      startPoller(config.EVENT_POLL_INTERVAL_MS);
+      const server = app.listen(config.PORT, () => {
+        logger.info(`Backend running on port ${config.PORT}`);
       });
 
-      // Force exit after 10 seconds
-      setTimeout(() => {
-        logger.error('Could not close connections in time, forcefully shutting down');
-        process.exit(1);
-      }, 10000);
-    };
+      const gracefulShutdown = (signal) => {
+        logger.info(`${signal} received. Starting graceful shutdown...`);
+        
+        stopPoller();
 
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+        server.close(() => {
+          logger.info('Http server closed.');
+          process.exit(0);
+        });
+
+        // Force exit after 10 seconds
+        setTimeout(() => {
+          logger.error('Could not close connections in time, forcefully shutting down');
+          process.exit(1);
+        }, 10000);
+      };
+
+      process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+      process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    });
+  }).catch(error => {
+    logger.error(`Failed to initialize secrets: ${error.message}`);
+    process.exit(1);
   });
 }
 
