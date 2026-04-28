@@ -31,6 +31,17 @@ To evaluate the issuer flow (minting and revoking records), you can connect your
 
 > **⚠️ Security Warning:** The demo database and contract state are wiped periodically.
 
+## 🚀 Staging Environment
+
+A production-equivalent staging environment is automatically deployed on every merge to `main`:
+
+* **URL:** https://staging.vaccichain.example.com
+* **Network:** Stellar Testnet
+* **Deployment:** Automatic via GitHub Actions
+* **Infrastructure:** AWS ECS Fargate
+
+See [docs/staging-environment.md](docs/staging-environment.md) for testing and monitoring procedures.
+
 ---
 
 ##  Architecture

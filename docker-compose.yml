@@ -4,9 +4,16 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - vaccichain
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -47,9 +54,16 @@ services:
     volumes:
       - vaccichain_db:/data
     depends_on:
-      - python-service
+      python-service:
+        condition: service_healthy
     networks:
       - vaccichain
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -82,6 +96,12 @@ services:
       - ANOMALY_THRESHOLD=${ANOMALY_THRESHOLD:-50}
     networks:
       - vaccichain
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     security_opt:
       - no-new-privileges:true
     cap_drop:

@@ -5,6 +5,7 @@ import IssuerDashboard from './pages/IssuerDashboard';
 import VerifyPage from './pages/VerifyPage';
 import AdminDashboard from './pages/AdminDashboard';
 import { AuthProvider } from './hooks/useFreighter';
+import { useDarkMode } from './hooks/useDarkMode';
 import FreighterBanner from './components/FreighterBanner';
 import DemoBanner from './components/DemoBanner';
 import { useDarkMode } from './hooks/useDarkMode'

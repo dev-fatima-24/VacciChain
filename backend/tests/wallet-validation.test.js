@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
 const request = require('supertest');
 const StellarSdk = require('@stellar/stellar-sdk');
+const { jwtFactory, vaccinationRecordFactory } = require('./factories');
 
 jest.mock('../src/stellar/soroban', () => ({
   invokeContract: jest.fn(),
@@ -11,8 +11,10 @@ jest.mock('@stellar/stellar-sdk', () => {
   const originalModule = jest.requireActual('@stellar/stellar-sdk');
   return {
     ...originalModule,
+    Keypair: originalModule.Keypair,
     scValToNative: jest.fn(),
     Address: {
+      ...originalModule.Address,
       fromString: jest.fn((address) => ({
         toScVal: () => ({}),
       })),
@@ -20,7 +22,11 @@ jest.mock('@stellar/stellar-sdk', () => {
   };
 });
 
+
+
 const { invokeContract, simulateContract } = require('../src/stellar/soroban');
+
+
 
 process.env.JWT_SECRET = 'test-jwt-secret';
 
@@ -28,14 +34,9 @@ const app = require('../src/app');
 
 const validPatientWallet = StellarSdk.Keypair.random().publicKey();
 const validIssuerWallet = StellarSdk.Keypair.random().publicKey();
-const issuerToken = jwt.sign(
-  { publicKey: validIssuerWallet, role: 'issuer' },
-  process.env.JWT_SECRET
-);
-const patientToken = jwt.sign(
-  { publicKey: validPatientWallet, role: 'patient' },
-  process.env.JWT_SECRET
-);
+const issuerToken = jwtFactory({ publicKey: validIssuerWallet, role: 'issuer' });
+const patientToken = jwtFactory({ publicKey: validPatientWallet, role: 'patient' });
+
 // Correct length and G-prefix but invalid checksum
 const checksumInvalidWallet = `G${'A'.repeat(55)}`;
 
@@ -43,6 +44,8 @@ beforeEach(() => {
   jest.restoreAllMocks();
   jest.clearAllMocks();
 });
+
+
 
 describe('Wallet validation — POST /vaccination/issue', () => {
   it('rejects malformed patient_address', async () => {
@@ -93,7 +96,8 @@ describe('Wallet validation — POST /vaccination/issue', () => {
       });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ success: true, token_id: 'token-1' });
+    expect(res.body).toMatchObject({ success: true, tokenId: 'token-1' });
+
     expect(invokeContract).toHaveBeenCalledTimes(1);
   });
 });
@@ -146,19 +150,23 @@ describe('Wallet validation — GET /verify/:wallet', () => {
   });
 
   it('accepts a valid wallet and returns vaccination status', async () => {
+    const record = vaccinationRecordFactory({ vaccine_name: 'MMR' });
     simulateContract.mockResolvedValue({ fake: 'scval' });
     jest
       .spyOn(StellarSdk, 'scValToNative')
-      .mockReturnValue([true, [{ vaccine: 'MMR' }]]);
+      .mockReturnValue([true, [{ vaccine: record.vaccine_name }]]);
 
-    const res = await request(app).get(`/verify/${validPatientWallet}`);
+    const res = await request(app)
+      .get(`/verify/${validPatientWallet}`)
+      .set('Authorization', `Bearer ${patientToken}`);
+
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       wallet: validPatientWallet,
       vaccinated: true,
       record_count: 1,
-      records: [{ vaccine: 'MMR' }],
+      records: [{ vaccine: record.vaccine_name }],
     });
     expect(simulateContract).toHaveBeenCalledTimes(1);
   });

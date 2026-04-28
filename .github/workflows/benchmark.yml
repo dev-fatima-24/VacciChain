@@ -1,0 +1,164 @@
+name: Performance Benchmarking
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-benchmark:
+    name: Backend API benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Start backend server
+        working-directory: backend
+        run: |
+          npm start &
+          sleep 5
+        env:
+          PORT: 4000
+          STELLAR_NETWORK: testnet
+          HORIZON_URL: https://horizon-testnet.stellar.org
+          SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+          STELLAR_NETWORK_PASSPHRASE: Test SDF Network ; September 2015
+          VACCINATIONS_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4
+          ADMIN_SECRET_KEY: SBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4
+          ADMIN_PUBLIC_KEY: GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4
+          SEP10_SERVER_KEY: SBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4
+          ISSUER_SECRET_KEY: SBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4
+          JWT_SECRET: test-secret-key-min-32-characters-long
+
+      - name: Install autocannon
+        run: npm install -g autocannon
+
+      - name: Benchmark /health endpoint
+        run: |
+          autocannon -c 10 -d 30 -p 10 http://localhost:4000/health > health-benchmark.txt
+          cat health-benchmark.txt
+
+      - name: Benchmark /verify endpoint
+        run: |
+          autocannon -c 10 -d 30 -p 10 \
+            -H "Content-Type: application/json" \
+            http://localhost:4000/verify/GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4 > verify-benchmark.txt
+          cat verify-benchmark.txt
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-benchmarks
+          path: |
+            health-benchmark.txt
+            verify-benchmark.txt
+          retention-days: 30
+
+  contract-gas-benchmark:
+    name: Contract gas usage benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust + wasm32 target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: cargo-${{ hashFiles('contracts/Cargo.lock') }}
+
+      - name: Build contract
+        working-directory: contracts
+        run: make build
+
+      - name: Run gas benchmarks
+        working-directory: contracts
+        run: |
+          cargo test --release -- --nocapture --test-threads=1 2>&1 | tee gas-report.txt
+          grep -E "gas_used|instructions" gas-report.txt > gas-summary.txt || true
+
+      - name: Upload gas report
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-gas-benchmarks
+          path: |
+            contracts/gas-report.txt
+            contracts/gas-summary.txt
+          retention-days: 30
+
+  benchmark-comparison:
+    name: Compare benchmarks with baseline
+    runs-on: ubuntu-latest
+    needs: [backend-benchmark, contract-gas-benchmark]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download current benchmarks
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-benchmarks
+          path: current-benchmarks
+
+      - name: Download baseline benchmarks
+        continue-on-error: true
+        run: |
+          mkdir -p baseline-benchmarks
+          git show origin/main:backend/benchmarks/health-benchmark.txt > baseline-benchmarks/health-benchmark.txt 2>/dev/null || echo "No baseline"
+          git show origin/main:backend/benchmarks/verify-benchmark.txt > baseline-benchmarks/verify-benchmark.txt 2>/dev/null || echo "No baseline"
+
+      - name: Compare response times
+        run: |
+          echo "## Performance Comparison" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f baseline-benchmarks/health-benchmark.txt ]; then
+            echo "### /health endpoint" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            tail -20 current-benchmarks/health-benchmark.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f baseline-benchmarks/verify-benchmark.txt ]; then
+            echo "### /verify endpoint" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            tail -20 current-benchmarks/verify-benchmark.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check for regressions
+        run: |
+          # Extract throughput from current benchmarks
+          CURRENT_HEALTH=$(grep -oP 'Req/Sec.*?\K[\d.]+' current-benchmarks/health-benchmark.txt | head -1 || echo "0")
+          
+          if [ -f baseline-benchmarks/health-benchmark.txt ]; then
+            BASELINE_HEALTH=$(grep -oP 'Req/Sec.*?\K[\d.]+' baseline-benchmarks/health-benchmark.txt | head -1 || echo "0")
+            
+            if (( $(echo "$CURRENT_HEALTH < $BASELINE_HEALTH * 0.8" | bc -l) )); then
+              echo "⚠️ Performance regression detected on /health endpoint" >> $GITHUB_STEP_SUMMARY
+              echo "Baseline: $BASELINE_HEALTH req/s, Current: $CURRENT_HEALTH req/s" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "✅ No significant performance regression detected" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi

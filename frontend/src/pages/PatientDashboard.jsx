@@ -6,6 +6,7 @@ import NFTCard from '../components/NFTCard';
 import NFTCardSkeleton from '../components/NFTCardSkeleton';
 import RecordDetailModal from '../components/RecordDetailModal';
 import CopyButton from '../components/CopyButton';
+import QRCodeModal from '../components/QRCodeModal';
 
 const styles = {
   page: { maxWidth: 700, width: '100%', margin: '2rem auto', padding: '0 1rem', boxSizing: 'border-box' },
@@ -79,7 +80,20 @@ export default function PatientDashboard() {
         </div>
       )}
 
-      {currentItems.map((r) => <NFTCard key={r.token_id} record={r} />)}
+      {currentItems.map((r) => (
+        <NFTCard
+          key={r.token_id}
+          record={r}
+          onShowQR={setQrRecord}
+        />
+      ))}
+
+      {qrRecord && (
+        <QRCodeModal
+          url={`${window.location.origin}/verify?wallet=${encodeURIComponent(publicKey)}&token=${encodeURIComponent(qrRecord.token_id)}`}
+          onClose={() => setQrRecord(null)}
+        />
+      )}
 
       {totalPages > 1 && (
         <nav aria-label="Pagination" style={styles.controls}>
