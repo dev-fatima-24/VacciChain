@@ -2,9 +2,11 @@ require('dotenv').config();
 const config = require('./config');
 const express = require('express');
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
 const logger = require('./logger');
 const { initDb } = require('./indexer/db');
 const { startPoller, stopPoller } = require('./indexer/poller');
+const swaggerSpec = require('./swagger');
 
 const authRoutes = require('./routes/auth');
 const vaccinationRoutes = require('./routes/vaccination');
@@ -16,6 +18,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: config.BODY_LIMIT }));
+
+// Swagger UI
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Request logging middleware
 app.use((req, _res, next) => {
