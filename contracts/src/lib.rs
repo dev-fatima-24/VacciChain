@@ -8,6 +8,9 @@ mod events;
 mod mint;
 mod verify;
 
+#[cfg(test)]
+mod fuzz_tests;
+
 use soroban_sdk::{contract, contractimpl, contracterror, Address, BytesN, Env, String, Vec, IntoVal};
 use storage::{DataKey, IssuerRecord, VaccinationRecord};
 
