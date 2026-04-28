@@ -14,6 +14,7 @@ const vaccinationRoutes = require('./routes/vaccination');
 const verifyRoutes = require('./routes/verify');
 const adminRoutes = require('./routes/admin');
 const patientRoutes = require('./routes/patient');
+const { getRpcServer } = require('./stellar/soroban');
 
 const app = express();
 
@@ -46,10 +47,20 @@ app.use('/patient', patientRoutes);
  * Health check endpoint.
  *
  * @route GET /health
- * @returns {Object} 200 - Service health status
- * @returns {string} 200.status - Always "ok"
+ * @returns {Object} 200 - { status: "ok", soroban: true, timestamp }
+ * @returns {Object} 503 - { status: "degraded", soroban: false, timestamp }
  */
-app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+app.get('/health', async (_req, res) => {
+  let soroban = false;
+  try {
+    await getRpcServer().getHealth();
+    soroban = true;
+  } catch (_err) {
+    // RPC unreachable
+  }
+  const body = { status: soroban ? 'ok' : 'degraded', soroban, timestamp: new Date().toISOString() };
+  res.status(soroban ? 200 : 503).json(body);
+});
 
 if (require.main === module) {
   initializeSecrets().then(() => {
