@@ -20,6 +20,14 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type);
   CREATE INDEX IF NOT EXISTS idx_events_ledger ON events(ledger);
+
+  CREATE TABLE IF NOT EXISTS api_keys (
+    id          TEXT PRIMARY KEY,
+    key_hash    TEXT NOT NULL UNIQUE,
+    label       TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    revoked     INTEGER NOT NULL DEFAULT 0
+  );
 `;
 
 /** Persist in-memory DB to disk. */
@@ -96,4 +104,39 @@ function getLatestLedger() {
   return res[0].values[0][0];
 }
 
-module.exports = { initDb, upsertEvents, queryEvents, getLatestLedger };
+// ── API key CRUD ──────────────────────────────────────────────────────────────
+
+function insertApiKey({ id, key_hash, label, created_at }) {
+  db.run(
+    'INSERT INTO api_keys (id, key_hash, label, created_at, revoked) VALUES (?,?,?,?,0)',
+    [id, key_hash, label, created_at]
+  );
+  flush();
+}
+
+function getApiKeyByHash(key_hash) {
+  const res = db.exec('SELECT * FROM api_keys WHERE key_hash = ?', [key_hash]);
+  if (!res.length) return null;
+  const { columns, values } = res[0];
+  const obj = {};
+  columns.forEach((col, i) => { obj[col] = values[0][i]; });
+  return obj;
+}
+
+function listApiKeys() {
+  const res = db.exec('SELECT id, label, created_at, revoked FROM api_keys ORDER BY created_at DESC');
+  if (!res.length) return [];
+  const { columns, values } = res[0];
+  return values.map(row => {
+    const obj = {};
+    columns.forEach((col, i) => { obj[col] = row[i]; });
+    return obj;
+  });
+}
+
+function revokeApiKey(id) {
+  db.run('UPDATE api_keys SET revoked = 1 WHERE id = ?', [id]);
+  flush();
+}
+
+module.exports = { initDb, upsertEvents, queryEvents, getLatestLedger, insertApiKey, getApiKeyByHash, listApiKeys, revokeApiKey };

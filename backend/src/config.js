@@ -5,6 +5,7 @@ const schema = z.object({
   STELLAR_NETWORK: z.enum(['testnet', 'mainnet']).default('testnet'),
   HORIZON_URL: z.string().url(),
   SOROBAN_RPC_URL: z.string().url(),
+  SOROBAN_RPC_MAX_RETRIES: z.coerce.number().int().nonnegative().default(3),
   STELLAR_NETWORK_PASSPHRASE: z.string().min(1),
 
   // Contract
@@ -15,6 +16,15 @@ const schema = z.object({
   SEP10_SERVER_KEY: z.string().min(1),
   JWT_SECRET: z.string().min(1),
   PORT: z.coerce.number().int().positive().default(4000),
+  // Comma-separated list of allowed origins, e.g. https://app.example.com,https://admin.example.com
+  ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
+
+  // Transaction fees (stroops; 1 XLM = 10_000_000 stroops)
+  SOROBAN_FEE: z.coerce.number().int().positive().default(100),
+  SOROBAN_TIP: z.coerce.number().int().min(0).default(0),
+
+  // Request limits
+  BODY_LIMIT: z.string().default('10kb'),
 
   // Indexer
   EVENT_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(15000),

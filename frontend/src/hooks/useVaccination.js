@@ -32,7 +32,8 @@ export function useVaccination() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast(`Vaccination NFT minted! Token ID: ${data.token_id}`, 'success');
+      const explorerUrl = `https://stellar.expert/explorer/testnet/tx/${data.transactionHash}`;
+      toast(`Vaccination NFT minted! Token ID: ${data.tokenId} — View on Explorer: ${explorerUrl}`, 'success');
       return data;
     } catch (e) {
       toast(e.message || 'Failed to issue vaccination.', 'error');

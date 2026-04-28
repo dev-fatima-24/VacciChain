@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "myRecords": "Mes dossiers",
+    "issue": "Émettre",
+    "verify": "Vérifier"
+  },
+  "landing": {
+    "subtitle": "Dossiers de vaccination sur Stellar — non-transférables, vérifiables, infalsifiables.",
+    "connected": "✅ Connecté : {{address}}",
+    "disconnect": "Déconnecter",
+    "connect": "Connecter le portefeuille Freighter",
+    "requiresFreighter": "Nécessite l'extension Freighter sur le réseau de test Stellar."
+  },
+  "patient": {
+    "connectPrompt": "Connectez votre portefeuille pour voir vos dossiers.",
+    "connectWallet": "Connecter le portefeuille",
+    "title": "Mes dossiers de vaccination",
+    "recordCount_one": "{{count}} dossier",
+    "recordCount_other": "{{count}} dossiers",
+    "wallet": "Portefeuille : {{address}}",
+    "loading": "Chargement…",
+    "error": "Erreur : {{message}}",
+    "noRecords": "Aucun dossier de vaccination trouvé.",
+    "prevPage": "‹ Préc.",
+    "nextPage": "Suiv. ›",
+    "pageOf": "Page {{page}} sur {{total}}"
+  },
+  "issuer": {
+    "connectPrompt": "Connectez votre portefeuille émetteur.",
+    "connectWallet": "Connecter le portefeuille",
+    "accessDenied": "Accès refusé : rôle émetteur requis.",
+    "title": "Émettre un NFT de vaccination",
+    "patientAddress": "Adresse Stellar du patient",
+    "vaccineName": "Nom du vaccin",
+    "vaccineNamePlaceholder": "ex. COVID-19",
+    "dateAdministered": "Date d'administration",
+    "submit": "Émettre le NFT de vaccination",
+    "submitting": "Émission en cours…",
+    "error": "Erreur : {{message}}",
+    "success": "✅ NFT de vaccination émis ! ID du jeton : {{tokenId}}",
+    "validation": {
+      "invalidAddress": "Doit être une clé publique Stellar valide (G…, 56 caractères)",
+      "vaccineRequired": "Le nom du vaccin est requis",
+      "dateRequired": "La date est requise",
+      "dateFuture": "La date ne peut pas être dans le futur"
+    }
+  },
+  "verify": {
+    "title": "Vérifier le statut vaccinal",
+    "placeholder": "Entrez l'adresse du portefeuille Stellar (G...)",
+    "submit": "Vérifier",
+    "checking": "Vérification…",
+    "error": "Erreur : {{message}}"
+  },
+  "nftCard": {
+    "date": "Date : {{date}}",
+    "issuer": "Émetteur : {{address}}"
+  },
+  "badge": {
+    "verified": "Vérifié : {{count}} dossier",
+    "verified_other": "Vérifié : {{count}} dossiers",
+    "notFound": "Aucun dossier trouvé",
+    "revoked": "Certificat révoqué",
+    "verifying": "Vérification en cours..."
+  },
+  "modal": {
+    "title": "💉 Dossier de vaccination",
+    "ariaLabel": "Détails du dossier de vaccination",
+    "close": "Fermer la fenêtre",
+    "vaccineName": "Nom du vaccin",
+    "dateAdministered": "Date d'administration",
+    "tokenId": "ID du jeton",
+    "issuerAddress": "Adresse de l'émetteur",
+    "txHash": "Hash de transaction",
+    "viewExplorer": "Voir sur Stellar Explorer ↗",
+    "noTxHash": "Hash de transaction non disponible pour ce dossier."
+  }
+}

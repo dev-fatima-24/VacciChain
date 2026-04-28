@@ -3,6 +3,7 @@ import structlog
 from fastapi import FastAPI, Request
 from routes.analytics import router as analytics_router
 from routes.batch import router as batch_router
+from schemas import HealthResponse
 
 structlog.configure(
     processors=[
@@ -32,4 +33,4 @@ async def log_requests(request: Request, call_next):
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return HealthResponse(status="ok")

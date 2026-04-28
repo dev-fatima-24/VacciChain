@@ -1,0 +1,32 @@
+name: Weekly Demo Environment Reset
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+
+jobs:
+  reset-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run Seeding Script
+        working-directory: ./scripts
+        env:
+          NETWORK: TESTNET
+          RPC_URL: https://soroban-testnet.stellar.org
+          ADMIN_SECRET: ${{ secrets.DEMO_ADMIN_SECRET }}
+          DEMO_ISSUER_SECRET: ${{ secrets.DEMO_ISSUER_SECRET }}
+          DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL }}
+        run: node seed_demo.js
