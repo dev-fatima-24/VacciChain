@@ -151,4 +151,4 @@ async function simulateContract(method, args) {
   return sim.result?.retval;
 }
 
-module.exports = { invokeContract, simulateContract };
+module.exports = { getRpcServer, invokeContract, simulateContract };

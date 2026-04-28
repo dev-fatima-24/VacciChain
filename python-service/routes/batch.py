@@ -25,6 +25,27 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:4000")
     },
 )
 async def batch_verify(request: BatchVerifyRequest):
+    """
+    Verify vaccination status for multiple wallets in a single request.
+
+    Accepts a list of Stellar wallet addresses and returns their vaccination status
+    by querying the backend's public verification endpoint for each wallet.
+
+    Args:
+        request (BatchVerifyRequest): Request containing a list of wallet addresses
+
+    Returns:
+        BatchVerifyResponse: Response containing verification results for each wallet
+
+    Raises:
+        HTTPException: 400 if more than 100 wallets are provided
+        HTTPException: 500 if the backend API is unreachable
+
+    Note:
+        - Maximum 100 wallets per request
+        - No authentication required
+        - Individual wallet lookup failures do not fail the entire request
+    """
     if len(request.wallets) > 100:
         raise HTTPException(status_code=400, detail="Maximum 100 wallets per request")
 

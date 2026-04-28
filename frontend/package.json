@@ -5,20 +5,33 @@
   "dependencies": {
     "@stellar/freighter-api": "^2.0.0",
     "@stellar/stellar-sdk": "^12.0.0",
-    "i18next": "^23.11.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-i18next": "^14.1.2",
     "react-router-dom": "^6.22.0"
+    "react-router-dom": "^6.22.0",
+    "@stellar/freighter-api": "^2.0.0",
+    "@stellar/stellar-sdk": "^12.0.0",
+    "i18next": "^23.11.5",
+    "react-i18next": "^14.1.2",
+    "jspdf": "^2.5.1",
+    "qrcode": "^1.5.3"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.29.2",
+    "@babel/preset-react": "^7.28.5",
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^14.2.0",
+    "@testing-library/user-event": "^14.5.0",
     "@vitejs/plugin-react": "^4.2.1",
-    "msw": "^2.13.6",
+    "@playwright/test": "^1.40.0",
     "vite": "^5.1.4"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug"
   }
 }

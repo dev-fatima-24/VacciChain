@@ -6,6 +6,7 @@ import NFTCard from '../components/NFTCard';
 import NFTCardSkeleton from '../components/NFTCardSkeleton';
 import RecordDetailModal from '../components/RecordDetailModal';
 import CopyButton from '../components/CopyButton';
+import QRCodeModal from '../components/QRCodeModal';
 
 const styles = {
   page: { maxWidth: 700, width: '100%', margin: '2rem auto', padding: '0 1rem', boxSizing: 'border-box' },
@@ -23,15 +24,21 @@ export default function PatientDashboard() {
   const { publicKey, connect } = useAuth();
   const { fetchRecords, loading } = useVaccination();
   const [records, setRecords] = useState([]);
+  const [error, setError] = useState(null);
   const { currentItems, page, totalPages, goTo, reset, total } = usePagination(records);
 
   const load = useCallback(() => {
     if (!publicKey) return;
-    fetchRecords(publicKey).then((data) => {
-      reset();
-      if (data) setRecords(data.records || []);
-    });
-  }, [publicKey, fetchRecords]);
+    fetchRecords(publicKey)
+      .then((data) => {
+        setError(null);
+        reset();
+        if (data) setRecords(data.records || []);
+      })
+      .catch((err) => {
+        setError(err.message || 'Failed to fetch records');
+      });
+  }, [publicKey, fetchRecords, reset]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -73,7 +80,20 @@ export default function PatientDashboard() {
         </div>
       )}
 
-      {currentItems.map((r) => <NFTCard key={r.token_id} record={r} />)}
+      {currentItems.map((r) => (
+        <NFTCard
+          key={r.token_id}
+          record={r}
+          onShowQR={setQrRecord}
+        />
+      ))}
+
+      {qrRecord && (
+        <QRCodeModal
+          url={`${window.location.origin}/verify?wallet=${encodeURIComponent(publicKey)}&token=${encodeURIComponent(qrRecord.token_id)}`}
+          onClose={() => setQrRecord(null)}
+        />
+      )}
 
       {totalPages > 1 && (
         <nav aria-label="Pagination" style={styles.controls}>

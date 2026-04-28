@@ -29,6 +29,64 @@ const revokeSchema = z.object({
   token_id: z.union([z.string(), z.number()]).transform((val) => String(val)),
 });
 
+/**
+ * @swagger
+ * /vaccination/issue:
+ *   post:
+ *     summary: Issue a vaccination NFT (issuer only)
+ *     tags:
+ *       - Vaccination
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               patient_address:
+ *                 type: string
+ *                 description: Stellar address of patient
+ *               vaccine_name:
+ *                 type: string
+ *               date_administered:
+ *                 type: string
+ *                 format: date-time
+ *             required:
+ *               - patient_address
+ *               - vaccine_name
+ *               - date_administered
+ *     responses:
+ *       200:
+ *         description: Vaccination NFT issued successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 tokenId:
+ *                   type: string
+ *                 transactionHash:
+ *                   type: string
+ *                 ledger:
+ *                   type: number
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - issuer role required
+ *       500:
+ *         description: Contract invocation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // POST /vaccination/issue — mint NFT (issuer only)
 router.post(
   '/issue',
@@ -77,6 +135,50 @@ router.post(
   }
 });
 
+/**
+ * @swagger
+ * /vaccination/revoke:
+ *   post:
+ *     summary: Revoke a vaccination record (issuer only)
+ *     tags:
+ *       - Vaccination
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token_id:
+ *                 type: string
+ *                 description: Token ID to revoke
+ *             required:
+ *               - token_id
+ *     responses:
+ *       200:
+ *         description: Vaccination record revoked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 token_id:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - issuer role required
+ *       500:
+ *         description: Contract invocation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // POST /vaccination/revoke — revoke a vaccination record (issuer or admin only)
 router.post(
   '/revoke',
@@ -116,6 +218,47 @@ router.post(
   }
 );
 
+/**
+ * @swagger
+ * /vaccination/{wallet}:
+ *   get:
+ *     summary: Fetch all vaccination records for a wallet
+ *     tags:
+ *       - Vaccination
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: wallet
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Stellar wallet address
+ *     responses:
+ *       200:
+ *         description: Vaccination records retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 wallet:
+ *                   type: string
+ *                 vaccinated:
+ *                   type: boolean
+ *                 records:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/VaccinationRecord'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Contract query failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // GET /vaccination/:wallet — fetch all records for a wallet
 router.get('/:wallet', authMiddleware, validateStellarPublicKey('params', 'wallet', 'wallet'), async (req, res) => {
   const { wallet } = req.params;

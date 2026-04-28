@@ -88,7 +88,7 @@ export default function RecordDetailModal({ record, onClose }) {
               <CopyButton text={record.tx_hash} label="transaction hash" />
             </p>
           </div>
-        ))}
+        )}
         <div style={{ marginTop: '1.5rem' }}>
           {explorerUrl ? (
             <a
