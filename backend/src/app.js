@@ -17,7 +17,17 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: config.BODY_LIMIT }));
 
-// Request logging middleware
+/**
+ * Request logging middleware.
+ *
+ * Logs all incoming HTTP requests with method and path.
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ *
+ * @side-effects Logs request information
+ */
 app.use((req, _res, next) => {
   logger.info('request', { method: req.method, path: req.path });
   next();
@@ -29,6 +39,13 @@ app.use('/verify', verifyRoutes);
 app.use('/admin', adminRoutes);
 app.use('/patient', patientRoutes);
 
+/**
+ * Health check endpoint.
+ *
+ * @route GET /health
+ * @returns {Object} 200 - Service health status
+ * @returns {string} 200.status - Always "ok"
+ */
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 if (require.main === module) {
