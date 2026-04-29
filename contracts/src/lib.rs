@@ -60,6 +60,7 @@ pub enum ContractError {
     InvalidInputCountry = 14,
     SoulboundToken = 15,
     PatientNotRegistered = 16,
+    ContractPaused = 17,
 }
 
 const MAX_STRING_LENGTH: u32 = 100;
@@ -92,6 +93,13 @@ pub(crate) fn validate_input_length(field: &String, field_name: &str) -> Result<
             "country" => ContractError::InvalidInputCountry,
             _ => ContractError::InvalidInput,
         });
+    }
+    Ok(())
+}
+
+pub(crate) fn require_not_paused(env: &Env) -> Result<(), ContractError> {
+    if env.storage().persistent().get::<DataKey, bool>(&DataKey::Paused).unwrap_or(false) {
+        return Err(ContractError::ContractPaused);
     }
     Ok(())
 }
@@ -129,6 +137,37 @@ impl VacciChainContract {
         Ok(())
     }
 
+    /// Pause the contract. Admin only. All state-changing calls will return `ContractPaused`.
+    pub fn pause(env: Env) -> Result<(), ContractError> {
+        let admin: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Admin)
+            .ok_or(ContractError::NotInitialized)?;
+        admin.require_auth();
+        env.storage().persistent().set(&DataKey::Paused, &true);
+        events::emit_contract_paused(&env, &admin);
+        Ok(())
+    }
+
+    /// Unpause the contract. Admin only.
+    pub fn unpause(env: Env) -> Result<(), ContractError> {
+        let admin: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Admin)
+            .ok_or(ContractError::NotInitialized)?;
+        admin.require_auth();
+        env.storage().persistent().set(&DataKey::Paused, &false);
+        events::emit_contract_unpaused(&env, &admin);
+        Ok(())
+    }
+
+    /// Returns true if the contract is currently paused.
+    pub fn is_paused(env: Env) -> bool {
+        env.storage().persistent().get::<DataKey, bool>(&DataKey::Paused).unwrap_or(false)
+    }
+
     /// Authorize a new healthcare provider (issuer) with metadata.
     ///
     /// Only the admin can call this function. Once authorized, an issuer can mint
@@ -162,6 +201,7 @@ impl VacciChainContract {
         license: String,
         country: String,
     ) -> Result<(), ContractError> {
+        require_not_paused(&env)?;
         let admin: Address = env
             .storage()
             .persistent()
@@ -240,6 +280,7 @@ impl VacciChainContract {
     /// # Events
     /// Emits `IssuerRevoked` event on success.
     pub fn revoke_issuer(env: Env, issuer: Address) -> Result<(), ContractError> {
+        require_not_paused(&env)?;
         let admin: Address = env
             .storage()
             .persistent()
@@ -278,6 +319,7 @@ impl VacciChainContract {
     /// # Events
     /// Emits `PatientRegistered` event on success.
     pub fn register_patient(env: Env, patient: Address) -> Result<(), ContractError> {
+        require_not_paused(&env)?;
         patient.require_auth();
         env.storage()
             .persistent()
@@ -341,6 +383,7 @@ impl VacciChainContract {
         dose_number: Option<u32>,
         dose_series: Option<u32>,
     ) -> Result<u64, ContractError> {
+        require_not_paused(&env)?;
         mint::mint_vaccination(&env, patient, vaccine_name, date_administered, issuer, dose_number, dose_series)
     }
 
@@ -370,6 +413,7 @@ impl VacciChainContract {
     /// # Events
     /// Emits `VaccinationRevoked` event on success.
     pub fn revoke_vaccination(env: Env, token_id: u64, revoker: Address) -> Result<(), ContractError> {
+        require_not_paused(&env)?;
         revoker.require_auth();
 
         let mut record: VaccinationRecord = env

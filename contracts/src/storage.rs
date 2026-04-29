@@ -106,4 +106,5 @@ pub enum DataKey {
     Token(u64),
     Revoked(u64),
     NextTokenId,
+    Paused,
 }
