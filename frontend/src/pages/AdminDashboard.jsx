@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
 
   const fetchKeys = useCallback(async () => {
-    const res = await apiFetch('/admin/api-keys');
+    const res = await apiFetch('/v1/admin/api-keys');
     if (res.ok) setKeys(await res.json());
   }, [apiFetch]);
 
@@ -51,7 +51,7 @@ export default function AdminDashboard() {
     setError(null);
     setNewKey(null);
     try {
-      const res = await apiFetch('/admin/api-keys', {
+      const res = await apiFetch('/v1/admin/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ label: label.trim() }),
@@ -70,7 +70,7 @@ export default function AdminDashboard() {
 
   const handleRevoke = async (id) => {
     if (!window.confirm('Revoke this API key? This cannot be undone.')) return;
-    await apiFetch(`/admin/api-keys/${id}`, { method: 'DELETE' });
+    await apiFetch(`/v1/admin/api-keys/${id}`, { method: 'DELETE' });
     await fetchKeys();
   };
 

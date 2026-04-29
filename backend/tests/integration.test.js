@@ -2,14 +2,26 @@ const request = require('supertest');
 const jwt = require('jsonwebtoken');
 const app = require('../src/app');
 
+const VALID_WALLET = 'GA3AUY2XRF6S7R73ABSLJMKG4R2NQGRUFPEJUGCANMBAAXI4MTBS6AQU';
+
 // Mock Soroban RPC responses
-jest.mock('../src/stellar/soroban', () => ({
-  invokeContract: jest.fn().mockResolvedValue({
-    result: { ok: null },
-    ledger: 1000,
-  }),
-  getContractState: jest.fn().mockResolvedValue({}),
-}));
+jest.mock('../src/stellar/soroban', () => {
+  const sdk = require('@stellar/stellar-sdk');
+  const mockResult = sdk.xdr.ScVal.scvVec([
+    sdk.xdr.ScVal.scvBool(true),
+    sdk.xdr.ScVal.scvVec([]),
+  ]);
+  return {
+    invokeContract: jest.fn().mockResolvedValue({
+      returnValue: sdk.xdr.ScVal.scvBool(true),
+      hash: 'abc123',
+      ledger: 1000,
+    }),
+    simulateContract: jest.fn().mockResolvedValue(mockResult),
+    getContractState: jest.fn().mockResolvedValue({}),
+    getRpcServer: jest.fn().mockReturnValue({ getHealth: jest.fn().mockResolvedValue({}) }),
+  };
+});
 
 // Mock SEP-10 functions
 jest.mock('../src/stellar/sep10', () => ({
@@ -19,7 +31,7 @@ jest.mock('../src/stellar/sep10', () => ({
   }),
   verifyChallenge: jest.fn((tx, nonce) => {
     if (nonce === 'test-nonce-123') {
-      return 'GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ';
+      return VALID_WALLET;
     }
     throw new Error('Invalid nonce');
   }),
@@ -30,7 +42,7 @@ describe('Integration Tests - SEP-10 Auth Flow', () => {
     it('should generate a challenge for a valid public key', async () => {
       const res = await request(app)
         .post('/auth/sep10')
-        .send({ public_key: 'GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ' });
+        .send({ public_key: VALID_WALLET });
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('transaction');
@@ -67,9 +79,9 @@ describe('Integration Tests - SEP-10 Auth Flow', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('token');
-      expect(res.body).toHaveProperty('publicKey');
+      expect(res.body).toHaveProperty('wallet');
       expect(res.body).toHaveProperty('role');
-      expect(res.body.publicKey).toBe('GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ');
+      expect(res.body.wallet).toBe(VALID_WALLET);
     });
 
     it('should reject invalid nonce', async () => {
@@ -108,10 +120,10 @@ describe('Integration Tests - Protected Routes', () => {
   beforeAll(() => {
     validToken = jwt.sign(
       {
-        publicKey: 'GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ',
+        publicKey: VALID_WALLET,
         role: 'patient',
-        sub: 'GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ',
-        wallet: 'GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ',
+        sub: VALID_WALLET,
+        wallet: VALID_WALLET,
       },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
@@ -131,27 +143,73 @@ describe('Integration Tests - Protected Routes', () => {
 
   describe('GET /vaccination/:wallet', () => {
     it('should reject request without auth header', async () => {
-      const res = await request(app)
-        .get('/vaccination/GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ');
-
+      const res = await request(app).get(`/vaccination/${VALID_WALLET}`);
       expect(res.status).toBe(401);
       expect(res.body.error).toMatch(/authorization/i);
     });
 
     it('should reject request with invalid token', async () => {
       const res = await request(app)
-        .get('/vaccination/GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ')
+        .get(`/vaccination/${VALID_WALLET}`)
         .set('Authorization', 'Bearer invalid-token');
-
       expect(res.status).toBe(401);
     });
 
-    it('should accept request with valid token', async () => {
+    it('should return paginated shape with defaults', async () => {
       const res = await request(app)
-        .get('/vaccination/GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ')
+        .get(`/vaccination/${VALID_WALLET}`)
         .set('Authorization', `Bearer ${validToken}`);
 
       expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('data');
+      expect(res.body).toHaveProperty('total');
+      expect(res.body).toHaveProperty('page', 1);
+      expect(res.body).toHaveProperty('limit', 20);
+      expect(Array.isArray(res.body.data)).toBe(true);
+    });
+
+    it('should accept valid page and limit params', async () => {
+      const res = await request(app)
+        .get(`/vaccination/${VALID_WALLET}?page=2&limit=10`)
+        .set('Authorization', `Bearer ${validToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.page).toBe(2);
+      expect(res.body.limit).toBe(10);
+    });
+
+    it('should return 400 for invalid page param', async () => {
+      const res = await request(app)
+        .get(`/vaccination/${VALID_WALLET}?page=0`)
+        .set('Authorization', `Bearer ${validToken}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/page/i);
+    });
+
+    it('should return 400 for non-numeric page param', async () => {
+      const res = await request(app)
+        .get(`/vaccination/${VALID_WALLET}?page=abc`)
+        .set('Authorization', `Bearer ${validToken}`);
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 for limit exceeding 100', async () => {
+      const res = await request(app)
+        .get(`/vaccination/${VALID_WALLET}?limit=101`)
+        .set('Authorization', `Bearer ${validToken}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/limit/i);
+    });
+
+    it('should return 400 for limit of 0', async () => {
+      const res = await request(app)
+        .get(`/vaccination/${VALID_WALLET}?limit=0`)
+        .set('Authorization', `Bearer ${validToken}`);
+
+      expect(res.status).toBe(400);
     });
   });
 
@@ -159,12 +217,7 @@ describe('Integration Tests - Protected Routes', () => {
     it('should reject request without auth header', async () => {
       const res = await request(app)
         .post('/vaccination/issue')
-        .send({
-          patient: 'GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ',
-          vaccine_name: 'COVID-19',
-          date_administered: '2024-01-15',
-        });
-
+        .send({ patient_address: VALID_WALLET, vaccine_name: 'COVID-19', date_administered: '2024-01-15' });
       expect(res.status).toBe(401);
     });
 
@@ -172,12 +225,7 @@ describe('Integration Tests - Protected Routes', () => {
       const res = await request(app)
         .post('/vaccination/issue')
         .set('Authorization', `Bearer ${validToken}`)
-        .send({
-          patient: 'GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ',
-          vaccine_name: 'COVID-19',
-          date_administered: '2024-01-15',
-        });
-
+        .send({ patient_address: VALID_WALLET, vaccine_name: 'COVID-19', date_administered: '2024-01-15' });
       expect(res.status).toBe(403);
     });
 
@@ -185,12 +233,7 @@ describe('Integration Tests - Protected Routes', () => {
       const res = await request(app)
         .post('/vaccination/issue')
         .set('Authorization', `Bearer ${issuerToken}`)
-        .send({
-          patient: 'GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ',
-          vaccine_name: 'COVID-19',
-          date_administered: '2024-01-15',
-        });
-
+        .send({ patient_address: VALID_WALLET, vaccine_name: 'COVID-19', date_administered: '2024-01-15' });
       expect(res.status).toBe(200);
     });
 
@@ -198,10 +241,7 @@ describe('Integration Tests - Protected Routes', () => {
       const res = await request(app)
         .post('/vaccination/issue')
         .set('Authorization', `Bearer ${issuerToken}`)
-        .send({
-          patient: 'GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ',
-        });
-
+        .send({ patient_address: VALID_WALLET });
       expect(res.status).toBe(400);
     });
   });
@@ -210,25 +250,19 @@ describe('Integration Tests - Protected Routes', () => {
 describe('Integration Tests - Public Verify Endpoint', () => {
   describe('GET /verify/:wallet', () => {
     it('should accept valid Stellar address', async () => {
-      const res = await request(app)
-        .get('/verify/GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ');
-
+      const res = await request(app).get(`/verify/${VALID_WALLET}`);
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('vaccinated');
       expect(res.body).toHaveProperty('record_count');
     });
 
     it('should reject invalid Stellar address', async () => {
-      const res = await request(app)
-        .get('/verify/invalid-address');
-
+      const res = await request(app).get('/verify/invalid-address');
       expect(res.status).toBe(400);
     });
 
     it('should not require authentication', async () => {
-      const res = await request(app)
-        .get('/verify/GBUQWP3BOUZX34ULNQG23RQ6F4YUSXHTBYICQJ2JTLU5VTDA7LUYXJQ');
-
+      const res = await request(app).get(`/verify/${VALID_WALLET}`);
       expect(res.status).toBe(200);
     });
   });
@@ -236,9 +270,7 @@ describe('Integration Tests - Public Verify Endpoint', () => {
 
 describe('Integration Tests - Error Handling', () => {
   it('should return 404 for unknown routes', async () => {
-    const res = await request(app)
-      .get('/unknown-route');
-
+    const res = await request(app).get('/unknown-route');
     expect(res.status).toBe(404);
   });
 
@@ -247,7 +279,6 @@ describe('Integration Tests - Error Handling', () => {
       .post('/auth/sep10')
       .set('Content-Type', 'application/json')
       .send('{ invalid json }');
-
     expect(res.status).toBe(400);
   });
 });

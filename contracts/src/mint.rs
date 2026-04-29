@@ -1,5 +1,5 @@
 use soroban_sdk::{Env, Address, String, Vec};
-use crate::storage::{DataKey, VaccinationRecord, IssuerRecord};
+use crate::storage::{DataKey, VaccinationRecord, IssuerRecord, compute_token_id};
 use crate::events;
 use crate::ContractError;
 use crate::validate_input_length;
@@ -10,6 +10,8 @@ pub fn mint_vaccination(
     vaccine_name: String,
     date_administered: String,
     issuer: Address,
+    dose_number: Option<u32>,
+    dose_series: Option<u32>,
 ) -> Result<u64, ContractError> {
     validate_input_length(&vaccine_name, "vaccine_name")?;
     validate_input_length(&date_administered, "date_administered")?;
@@ -101,6 +103,8 @@ pub fn mint_vaccination(
         timestamp: env.ledger().timestamp(),
         schema_version: 1,
         revoked: false,
+        dose_number,
+        dose_series,
     };
 
     // Persist token

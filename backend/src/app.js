@@ -14,36 +14,50 @@ const vaccinationRoutes = require('./routes/vaccination');
 const verifyRoutes = require('./routes/verify');
 const adminRoutes = require('./routes/admin');
 const patientRoutes = require('./routes/patient');
+const consentRoutes = require('./routes/consent');
+const eventsRoutes = require('./routes/events');
+const apiVersion = require('./middleware/apiVersion');
 const { getRpcServer } = require('./stellar/soroban');
+
+const requestId = require('./middleware/requestId');
 
 const app = express();
 
-
 app.use(cors());
 app.use(express.json({ limit: config.BODY_LIMIT }));
+app.use(requestId);
 
-/**
- * Request logging middleware.
- *
- * Logs all incoming HTTP requests with method and path.
- *
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- *
- * @side-effects Logs request information
- */
-app.use((req, _res, next) => {
-  logger.info('request', { method: req.method, path: req.path });
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    logger.info('request', {
+      requestId: req.requestId,
+      method: req.method,
+      route: req.path,
+      statusCode: res.statusCode,
+      durationMs: Date.now() - start,
+    });
+  });
   next();
 });
 
-app.use('/auth', authRoutes);
-app.use('/vaccination', vaccinationRoutes);
-app.use('/verify', verifyRoutes);
-app.use('/admin', adminRoutes);
-app.use('/patient', patientRoutes);
-app.use('/events', eventsRoutes);
+// v1 routes — all API endpoints are versioned under /v1/
+const v1 = express.Router();
+v1.use(apiVersion);
+v1.use('/auth', authRoutes);
+v1.use('/vaccination', vaccinationRoutes);
+v1.use('/verify', verifyRoutes);
+v1.use('/admin', adminRoutes);
+v1.use('/patient', patientRoutes);
+v1.use('/patient', consentRoutes);
+v1.use('/events', eventsRoutes);
+app.use('/v1', v1);
+
+// Legacy unversioned routes — 308 redirect to /v1/ with Deprecation header
+app.use(['/auth', '/vaccination', '/verify', '/admin', '/patient', '/events'], (req, res) => {
+  res.setHeader('Deprecation', 'true');
+  res.redirect(308, `/v1${req.originalUrl}`);
+});
 
 
 /**

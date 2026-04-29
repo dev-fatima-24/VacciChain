@@ -27,7 +27,11 @@
   "jest": {
     "setupFiles": [
       "./tests/setup.js"
-    ]
+    ],
+    "moduleNameMapper": {
+      "^../secrets$": "<rootDir>/tests/__mocks__/secrets.js",
+      "^./secrets$": "<rootDir>/tests/__mocks__/secrets.js"
+    }
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",

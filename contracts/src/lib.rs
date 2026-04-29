@@ -18,7 +18,8 @@ mod upgrade_tests;
 mod property_tests;
 
 use soroban_sdk::{contract, contractimpl, contracterror, Address, BytesN, Env, String, Vec, IntoVal};
-use storage::{DataKey, IssuerRecord, VaccinationRecord};
+use storage::{DataKey, IssuerRecord, VaccinationRecord, hash_address, compute_token_id};
+use verify::DoseStatus;
 
 /// Contract errors.
 ///
@@ -176,7 +177,7 @@ impl VacciChainContract {
             authorized: true,
         };
 
-        env.storage().persistent().set(&DataKey::IssuerMeta(issuer_key.clone()), &record);
+        env.storage().persistent().set(&DataKey::IssuerMeta(hash_address(&env, &issuer)), &record);
 
         let mut issuers: Vec<Address> = env
             .storage()
@@ -335,8 +336,10 @@ impl VacciChainContract {
         vaccine_name: String,
         date_administered: String,
         issuer: Address,
+        dose_number: Option<u32>,
+        dose_series: Option<u32>,
     ) -> Result<u64, ContractError> {
-        mint::mint_vaccination(&env, patient, vaccine_name, date_administered, issuer)
+        mint::mint_vaccination(&env, patient, vaccine_name, date_administered, issuer, dose_number, dose_series)
     }
 
     /// Revoke a vaccination record.
@@ -430,7 +433,7 @@ impl VacciChainContract {
     ///
     /// # Authorization
     /// This is a public read-only function; no authorization required.
-    pub fn verify_vaccination(env: Env, wallet: Address) -> (bool, Vec<VaccinationRecord>) {
+    pub fn verify_vaccination(env: Env, wallet: Address) -> (bool, Vec<VaccinationRecord>, Vec<DoseStatus>) {
         verify::verify_vaccination(&env, wallet)
     }
 
@@ -682,7 +685,7 @@ mod tests {
         let date = String::from_str(&env, "2024-01-15");
         let seq = env.ledger().sequence();
 
-        let token_id = client.mint_vaccination(&patient, &vaccine, &date, &issuer);
+        let token_id = client.mint_vaccination(&patient, &vaccine, &date, &issuer, &None::<u32>, &None::<u32>);
 
         // token_id must be a non-zero u64 (hash-derived)
         assert_ne!(token_id, 0);
@@ -691,7 +694,7 @@ mod tests {
         let expected = compute_token_id(&env, &patient, &vaccine, &date, &issuer, seq);
         assert_eq!(token_id, expected);
 
-        let (vaccinated, records) = client.verify_vaccination(&patient);
+        let (vaccinated, records, _dose_statuses) = client.verify_vaccination(&patient);
         assert!(vaccinated);
         assert_eq!(records.len(), 1);
         let record = records.get(0).unwrap();
@@ -710,6 +713,8 @@ mod tests {
             &String::from_str(&env, "COVID-19"),
             &String::from_str(&env, "2024-01-15"),
             &fake_issuer,
+            &None::<u32>,
+            &None::<u32>,
         );
         assert_eq!(result, Err(Ok(ContractError::Unauthorized)));
     }
@@ -732,6 +737,8 @@ mod tests {
             &String::from_str(&env, "COVID-19"),
             &String::from_str(&env, "2024-01-15"),
             &issuer,
+            &None::<u32>,
+            &None::<u32>,
         );
 
         let result = client.try_mint_vaccination(
@@ -739,6 +746,8 @@ mod tests {
             &String::from_str(&env, "COVID-19"),
             &String::from_str(&env, "2024-01-15"),
             &issuer,
+            &None::<u32>,
+            &None::<u32>,
         );
         assert_eq!(result, Err(Ok(ContractError::DuplicateRecord)));
     }
@@ -758,7 +767,7 @@ mod tests {
         let (env, client, _admin) = setup_env();
         let wallet = Address::generate(&env);
 
-        let (vaccinated, records) = client.verify_vaccination(&wallet);
+        let (vaccinated, records, _dose_statuses) = client.verify_vaccination(&wallet);
         assert!(!vaccinated);
         assert_eq!(records.len(), 0);
     }
@@ -781,11 +790,13 @@ mod tests {
             &String::from_str(&env, "COVID-19"),
             &String::from_str(&env, "2024-01-15"),
             &issuer,
-        ).unwrap();
+            &None::<u32>,
+            &None::<u32>,
+        );
 
         client.revoke_vaccination(&token_id, &issuer).unwrap();
 
-        let (vaccinated, records) = client.verify_vaccination(&patient);
+        let (vaccinated, records, _dose_statuses) = client.verify_vaccination(&patient);
         assert!(!vaccinated);
         assert_eq!(records.len(), 0);
     }
@@ -840,7 +851,9 @@ mod tests {
                 &String::from_str(&env, "Vax"),
                 &String::from_str(&env, "2024"),
                 &issuer,
-            ).unwrap();
+                &None::<u32>,
+                &None::<u32>,
+            );
             wallets.push_back(patient);
         }
 

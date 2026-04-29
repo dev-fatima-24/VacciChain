@@ -17,14 +17,14 @@ export function AuthProvider({ children }) {
   const [freighterInstalled, setFreighterInstalled] = useState(() => typeof window !== 'undefined' && !!window.freighter);
 
   const runSep10 = useCallback(async (pk) => {
-    const challengeRes = await fetch('/auth/sep10', {
+    const challengeRes = await fetch('/v1/auth/sep10', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ public_key: pk }),
     });
     const { transaction, nonce } = await challengeRes.json();
     const signedXDR = await signTransaction(transaction, { network: 'TESTNET' });
-    const verifyRes = await fetch('/auth/verify', {
+    const verifyRes = await fetch('/v1/auth/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transaction: signedXDR, nonce }),

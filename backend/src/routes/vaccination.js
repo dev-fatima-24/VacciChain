@@ -24,6 +24,8 @@ const issueSchema = z.object({
   date_administered: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: 'Invalid date format',
   }),
+  dose_number: z.number().int().min(1).optional(),
+  dose_series: z.number().int().min(1).optional(),
 });
 
 const revokeSchema = z.object({
@@ -95,7 +97,7 @@ router.post(
   issuerMiddleware,
   validate(issueSchema),
   async (req, res) => {
-  const { patient_address, vaccine_name, date_administered } = req.body;
+  const { patient_address, vaccine_name, date_administered, dose_number, dose_series } = req.body;
 
   // Enforce patient consent unless jurisdiction config waives it
   if (process.env.REQUIRE_PATIENT_CONSENT !== 'false' && !hasConsented(patient_address)) {
@@ -103,11 +105,17 @@ router.post(
   }
 
   try {
+    const toOptU32 = (v) => v != null
+      ? StellarSdk.xdr.ScVal.scvVec([StellarSdk.xdr.ScVal.scvU32(v)])
+      : StellarSdk.xdr.ScVal.scvVoid();
+
     const args = [
       StellarSdk.Address.fromString(patient_address).toScVal(),
       StellarSdk.xdr.ScVal.scvString(vaccine_name),
       StellarSdk.xdr.ScVal.scvString(date_administered),
       StellarSdk.Address.fromString(req.user.publicKey).toScVal(),
+      toOptU32(dose_number),
+      toOptU32(dose_series),
     ];
 
     const result = await invokeContract(process.env.ISSUER_SECRET_KEY, 'mint_vaccination', args);
@@ -119,7 +127,7 @@ router.post(
       action: 'vaccination.issue',
       target: patient_address,
       result: 'success',
-      meta: { token_id: tokenId, vaccine_name, date_administered },
+      meta: { token_id: tokenId, vaccine_name, date_administered, dose_number, dose_series },
     });
 
     res.json({
@@ -265,16 +273,30 @@ router.post(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-// GET /vaccination/:wallet — fetch all records for a wallet
+// GET /vaccination/:wallet — fetch paginated records for a wallet
 router.get('/:wallet', authMiddleware, validateStellarPublicKey('params', 'wallet', 'wallet'), async (req, res) => {
   const { wallet } = req.params;
+
+  const rawPage = req.query.page !== undefined ? Number(req.query.page) : 1;
+  const rawLimit = req.query.limit !== undefined ? Number(req.query.limit) : 20;
+
+  if (!Number.isInteger(rawPage) || rawPage < 1) {
+    return res.status(400).json({ error: 'page must be a positive integer' });
+  }
+  if (!Number.isInteger(rawLimit) || rawLimit < 1 || rawLimit > 100) {
+    return res.status(400).json({ error: 'limit must be an integer between 1 and 100' });
+  }
 
   try {
     const args = [StellarSdk.Address.fromString(wallet).toScVal()];
     const result = await simulateContract('verify_vaccination', args);
-    const [vaccinated, records] = StellarSdk.scValToNative(result);
+    const [vaccinated, allRecords] = StellarSdk.scValToNative(result);
 
-    res.json({ wallet, vaccinated, records });
+    const total = allRecords.length;
+    const start = (rawPage - 1) * rawLimit;
+    const data = allRecords.slice(start, start + rawLimit);
+
+    res.json({ data, total, page: rawPage, limit: rawLimit });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

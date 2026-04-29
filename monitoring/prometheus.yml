@@ -1,0 +1,72 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  # ── VacciChain service health checks ──────────────────────────────────────
+  - job_name: vaccichain_health
+    metrics_path: /probe
+    params:
+      module: [http_health]
+    static_configs:
+      - targets:
+          - http://backend:4000/health        # Backend (Node.js)
+          - http://python-service:8001/health # Analytics (FastAPI)
+        labels:
+          env: local
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+
+  # ── Frontend availability ──────────────────────────────────────────────────
+  - job_name: vaccichain_frontend
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://frontend:80
+        labels:
+          env: local
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+
+  # ── Staging / production endpoints (override via env vars or edit targets) ─
+  - job_name: vaccichain_staging
+    metrics_path: /probe
+    params:
+      module: [http_health]
+    static_configs:
+      - targets:
+          - ${STAGING_BACKEND_URL:-https://staging.vaccichain.example.com}/health
+        labels:
+          env: staging
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+
+  # ── Blackbox exporter self-monitoring ─────────────────────────────────────
+  - job_name: blackbox
+    static_configs:
+      - targets: ["blackbox:9115"]
