@@ -31,6 +31,17 @@ To evaluate the issuer flow (minting and revoking records), you can connect your
 
 > **⚠️ Security Warning:** The demo database and contract state are wiped periodically.
 
+## 🚀 Staging Environment
+
+A production-equivalent staging environment is automatically deployed on every merge to `main`:
+
+* **URL:** https://staging.vaccichain.example.com
+* **Network:** Stellar Testnet
+* **Deployment:** Automatic via GitHub Actions
+* **Infrastructure:** AWS ECS Fargate
+
+See [docs/staging-environment.md](docs/staging-environment.md) for testing and monitoring procedures.
+
 ---
 
 ##  Architecture
@@ -141,7 +152,10 @@ issuer_address   →  bool (authorized)
 
 ##  Backend API
 
-Base URL: `http://localhost:4000`
+Base URL: `http://localhost:4000/v1`
+
+> All endpoints are versioned. Responses include an `API-Version: 1` header.
+> Unversioned paths (`/auth/...`, `/vaccination/...`, etc.) return a `308 Permanent Redirect` to `/v1/...` with a `Deprecation: true` header.
 
 ### Auth
 
@@ -297,6 +311,12 @@ Copy `.env.example` to `.env` and fill in the required values. The backend valid
 | `AUDIT_LOG_PATH` | no | `./audit.log` | Path to append-only NDJSON audit log |
 | `ANALYTICS_PORT` | no | `8001` | Python analytics service port |
 | `BACKEND_URL` | no | `http://backend:4000` | Analytics service → backend base URL |
+| `ANOMALY_THRESHOLD` | no | `50` | Mint count above which an issuer is flagged |
+| `ANOMALY_SCHEDULE_MINUTES` | no | `15` | How often (minutes) the anomaly check runs |
+| `ALERT_WEBHOOK_URL` | no | — | Webhook URL to POST alerts to (Slack/PagerDuty/email) |
+| `ALERT_WEBHOOK_TYPE` | no | `slack` | Webhook payload format: `slack`, `pagerduty`, or `email` |
+| `PAGERDUTY_ROUTING_KEY` | no | — | PagerDuty Events API v2 routing key (required when `ALERT_WEBHOOK_TYPE=pagerduty`) |
+| `ALERT_EMAIL_TO` | no | — | Recipient address (required when `ALERT_WEBHOOK_TYPE=email`) |
 
 For full descriptions, format rules, and examples see [docs/configuration.md](docs/configuration.md).
 
@@ -330,3 +350,15 @@ cd python-service && pytest
 ##  License
 
 MIT © VacciChain Contributors
+
+---
+
+## 🗺️ Roadmap
+
+| Milestone | Target | Focus |
+|-----------|--------|-------|
+| v0.1 — Testnet MVP | 2026-06-30 | Core contract, backend, frontend, CI |
+| v0.2 — Security Hardening | 2026-09-30 | Auth hardening, audit, onboarding |
+| v1.0 — Mainnet Launch | 2026-12-31 | Production deployment, compliance |
+
+See [docs/roadmap.md](docs/roadmap.md) for full milestone details, success criteria, and issue triage.

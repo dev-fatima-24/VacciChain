@@ -1,7 +1,24 @@
 const jwt = require('jsonwebtoken');
 
 /**
- * Verify JWT and validate that required claims (sub, role, wallet, exp) are present and correct.
+ * JWT authentication middleware.
+ *
+ * Verifies the JWT token from the Authorization header and validates required claims.
+ * Attaches the decoded token to req.user for use in route handlers.
+ *
+ * @param {Object} req - Express request object
+ * @param {string} req.headers.authorization - Bearer token (format: "Bearer <token>")
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ *
+ * @returns {void} Calls next() on success, sends 401 response on failure
+ *
+ * @throws {Error} 401 - Missing authorization header
+ * @throws {Error} 401 - Invalid or expired token
+ * @throws {Error} 401 - Missing required claim (sub, role, wallet, exp)
+ * @throws {Error} 401 - Invalid role claim (must be 'patient' or 'issuer')
+ *
+ * @side-effects Sets req.user to the decoded JWT payload on success
  */
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;

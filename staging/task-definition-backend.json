@@ -1,0 +1,146 @@
+{
+  "family": "vaccichain-staging",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "containerDefinitions": [
+    {
+      "name": "frontend",
+      "image": "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/vaccichain-frontend:staging-latest",
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "hostPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/vaccichain-staging",
+          "awslogs-region": "REGION",
+          "awslogs-stream-prefix": "frontend"
+        }
+      },
+      "dependsOn": [
+        {
+          "containerName": "backend",
+          "condition": "START"
+        }
+      ]
+    },
+    {
+      "name": "backend",
+      "image": "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/vaccichain-backend:staging-latest",
+      "portMappings": [
+        {
+          "containerPort": 4000,
+          "hostPort": 4000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "STELLAR_NETWORK",
+          "value": "testnet"
+        },
+        {
+          "name": "HORIZON_URL",
+          "value": "https://horizon-testnet.stellar.org"
+        },
+        {
+          "name": "SOROBAN_RPC_URL",
+          "value": "https://soroban-testnet.stellar.org"
+        },
+        {
+          "name": "STELLAR_NETWORK_PASSPHRASE",
+          "value": "Test SDF Network ; September 2015"
+        },
+        {
+          "name": "USE_AWS_SECRETS",
+          "value": "true"
+        },
+        {
+          "name": "AWS_SECRET_NAME",
+          "value": "vaccichain/staging/stellar"
+        },
+        {
+          "name": "PORT",
+          "value": "4000"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "VACCINATIONS_CONTRACT_ID",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:vaccichain/staging/stellar:VACCINATIONS_CONTRACT_ID::"
+        },
+        {
+          "name": "ADMIN_SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:vaccichain/staging/stellar:ADMIN_SECRET_KEY::"
+        },
+        {
+          "name": "ADMIN_PUBLIC_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:vaccichain/staging/stellar:ADMIN_PUBLIC_KEY::"
+        },
+        {
+          "name": "SEP10_SERVER_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:vaccichain/staging/stellar:SEP10_SERVER_KEY::"
+        },
+        {
+          "name": "ISSUER_SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:vaccichain/staging/stellar:ISSUER_SECRET_KEY::"
+        },
+        {
+          "name": "JWT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:vaccichain/staging/stellar:JWT_SECRET::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/vaccichain-staging",
+          "awslogs-region": "REGION",
+          "awslogs-stream-prefix": "backend"
+        }
+      },
+      "dependsOn": [
+        {
+          "containerName": "python-service",
+          "condition": "START"
+        }
+      ]
+    },
+    {
+      "name": "python-service",
+      "image": "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/vaccichain-python:staging-latest",
+      "portMappings": [
+        {
+          "containerPort": 8001,
+          "hostPort": 8001,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "BACKEND_URL",
+          "value": "http://backend:4000"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/vaccichain-staging",
+          "awslogs-region": "REGION",
+          "awslogs-stream-prefix": "python-service"
+        }
+      }
+    }
+  ],
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/vaccichain-staging-task-role"
+}

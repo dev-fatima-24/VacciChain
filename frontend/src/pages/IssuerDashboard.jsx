@@ -13,6 +13,10 @@ const styles = {
   btnDisabled: { padding: '0.7rem', background: '#334155', color: '#64748b', border: 'none', borderRadius: 8, fontSize: '1rem', cursor: 'not-allowed', width: '100%' },
   label: { color: '#94a3b8', fontSize: '0.85rem', marginBottom: '0.25rem' },
   fieldError: { color: '#f87171', fontSize: '0.78rem', marginTop: '0.25rem' },
+  statusBadge: { display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 6, fontSize: '0.85rem', marginBottom: '1rem' },
+  authorized: { background: '#065f46', color: '#10b981', border: '1px solid #10b981' },
+  unauthorized: { background: '#7f1d1d', color: '#f87171', border: '1px solid #f87171' },
+  warning: { background: '#78350f', color: '#f59e0b', padding: '0.75rem', borderRadius: 8, marginBottom: '1rem', fontSize: '0.9rem' },
 };
 
 const STELLAR_ADDRESS_RE = /^G[A-Z2-7]{55}$/;
@@ -23,7 +27,7 @@ const EMPTY_FORM = { patient_address: '', vaccine_name: '', date_administered: '
 export default function IssuerDashboard() {
   const { t } = useTranslation();
   const { publicKey, role, connect } = useAuth();
-  const { issueVaccination, loading } = useVaccination();
+  const { issueVaccination, checkIssuerStatus, loading } = useVaccination();
 
   const [form, setForm] = useState(() => {
     try {
@@ -34,8 +38,11 @@ export default function IssuerDashboard() {
     }
   });
   const [touched, setTouched] = useState({});
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [mintResult, setMintResult] = useState(null);
   const [confirming, setConfirming] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(null);
 
   const validate = (f) => {
     const errors = {};
@@ -57,6 +64,12 @@ export default function IssuerDashboard() {
     sessionStorage.setItem(FORM_KEY, JSON.stringify(form));
   }, [form]);
 
+  useEffect(() => {
+    if (publicKey && role === 'issuer') {
+      checkIssuerStatus().then(setIsAuthorized);
+    }
+  }, [publicKey, role, checkIssuerStatus]);
+
   if (!publicKey) {
     return (
       <div style={styles.page}>
@@ -68,6 +81,14 @@ export default function IssuerDashboard() {
 
   if (role !== 'issuer') {
     return <div style={styles.page}><p style={{ color: '#f87171' }}>{t('issuer.accessDenied')}</p></div>;
+  }
+
+  if (isAuthorized === null) {
+    return (
+      <div style={styles.page}>
+        <p style={{ color: '#94a3b8' }}>Checking authorization status...</p>
+      </div>
+    );
   }
 
   const handleSubmit = async (e) => {
@@ -89,7 +110,7 @@ export default function IssuerDashboard() {
   return (
     <div style={styles.page}>
       <h2 style={{ marginBottom: '1.5rem', color: 'var(--text)' }}>Issue Vaccination NFT</h2>
-      <form style={styles.form} onSubmit={handleSubmit}>
+      <form style={styles.form} onSubmit={handleSubmit} role="form">
         {[
           { key: 'patient_address', label: 'Patient Stellar Address', placeholder: 'G...' },
           { key: 'vaccine_name', label: 'Vaccine Name', placeholder: 'e.g. COVID-19' },
@@ -99,15 +120,16 @@ export default function IssuerDashboard() {
             <label htmlFor={key} style={styles.label}>{label}</label>
             <input
               id={key}
-              style={styles.input}
+              style={errors[key] ? styles.inputError : styles.input}
               placeholder={placeholder}
               value={form[key]}
               onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
               required
             />
+            {errors[key] && <p style={styles.fieldError}>{errors[key]}</p>}
           </div>
         ))}
-        <button style={styles.btn} type="submit" disabled={loading} aria-disabled={loading}>
+        <button style={isAuthorized ? styles.btn : styles.btnDisabled} type="submit" disabled={loading || !isAuthorized} aria-disabled={loading || !isAuthorized}>
           {loading ? 'Minting…' : 'Issue Vaccination NFT'}
         </button>
       </form>

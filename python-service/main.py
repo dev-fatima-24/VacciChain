@@ -1,8 +1,15 @@
 import os
+from contextlib import asynccontextmanager
+
 import structlog
 from fastapi import FastAPI, Request
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+
 from routes.analytics import router as analytics_router
 from routes.batch import router as batch_router
+from scheduler import start_scheduler, stop_scheduler
 from schemas import HealthResponse
 
 structlog.configure(
@@ -18,7 +25,19 @@ structlog.configure(
 
 logger = structlog.get_logger(service="python-service")
 
-app = FastAPI(title="VacciChain Analytics", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler()
+    yield
+    stop_scheduler()
+
+
+app = FastAPI(title="VacciChain Analytics", version="1.0.0", lifespan=lifespan)
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.include_router(analytics_router, prefix="/analytics")
 app.include_router(batch_router, prefix="/batch")

@@ -1,0 +1,167 @@
+name: Deploy Contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/**"
+  workflow_dispatch:
+    inputs:
+      network:
+        description: "Target network"
+        required: true
+        default: testnet
+        type: choice
+        options: [testnet, mainnet]
+
+jobs:
+  build:
+    name: Build WASM
+    runs-on: ubuntu-latest
+    outputs:
+      wasm-hash: ${{ steps.hash.outputs.hash }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: cargo-${{ hashFiles('contracts/Cargo.lock') }}
+
+      - name: Build WASM
+        working-directory: contracts
+        run: make build
+
+      - name: Hash artifact
+        id: hash
+        run: echo "hash=$(sha256sum contracts/target/wasm32-unknown-unknown/release/vaccichain.wasm | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vaccichain-wasm
+          path: contracts/target/wasm32-unknown-unknown/release/vaccichain.wasm
+          retention-days: 7
+
+  deploy-testnet:
+    name: Deploy → Testnet
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.network == 'testnet')
+    environment:
+      name: testnet
+      url: https://stellar.expert/explorer/testnet/contract/${{ steps.deploy.outputs.contract_id }}
+    outputs:
+      contract_id: ${{ steps.deploy.outputs.contract_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: vaccichain-wasm
+          path: contracts/target/wasm32-unknown-unknown/release/
+
+      - name: Install Stellar CLI
+        run: |
+          curl -sSL https://github.com/stellar/stellar-cli/releases/download/v22.8.1/stellar-cli-v22.8.1-x86_64-unknown-linux-gnu.tar.gz \
+            | tar -xz -C /usr/local/bin stellar
+
+      - name: Deploy contract
+        id: deploy
+        env:
+          ADMIN_SECRET_KEY: ${{ secrets.TESTNET_ADMIN_SECRET_KEY }}
+        run: |
+          CONTRACT_ID=$(stellar contract deploy \
+            --wasm contracts/target/wasm32-unknown-unknown/release/vaccichain.wasm \
+            --source "$ADMIN_SECRET_KEY" \
+            --network testnet)
+          echo "contract_id=$CONTRACT_ID" >> "$GITHUB_OUTPUT"
+          echo "### Testnet Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Contract ID:** \`$CONTRACT_ID\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **WASM SHA-256:** \`${{ needs.build.outputs.wasm-hash }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke test
+        env:
+          ADMIN_SECRET_KEY: ${{ secrets.TESTNET_ADMIN_SECRET_KEY }}
+          ADMIN_PUBLIC_KEY: ${{ secrets.TESTNET_ADMIN_PUBLIC_KEY }}
+          CONTRACT_ID: ${{ steps.deploy.outputs.contract_id }}
+        run: |
+          stellar contract invoke \
+            --id "$CONTRACT_ID" \
+            --source "$ADMIN_SECRET_KEY" \
+            --network testnet \
+            -- verify_vaccination \
+            --wallet "$ADMIN_PUBLIC_KEY"
+
+      - name: Write contract ID to env config
+        env:
+          CONTRACT_ID: ${{ steps.deploy.outputs.contract_id }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh secret set TESTNET_CONTRACT_ID --body "$CONTRACT_ID"
+
+  deploy-mainnet:
+    name: Deploy → Mainnet
+    needs: [build, deploy-testnet]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.network == 'mainnet'
+    environment:
+      name: mainnet
+      url: https://stellar.expert/explorer/public/contract/${{ steps.deploy.outputs.contract_id }}
+    outputs:
+      contract_id: ${{ steps.deploy.outputs.contract_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: vaccichain-wasm
+          path: contracts/target/wasm32-unknown-unknown/release/
+
+      - name: Install Stellar CLI
+        run: |
+          curl -sSL https://github.com/stellar/stellar-cli/releases/download/v22.8.1/stellar-cli-v22.8.1-x86_64-unknown-linux-gnu.tar.gz \
+            | tar -xz -C /usr/local/bin stellar
+
+      - name: Deploy contract
+        id: deploy
+        env:
+          ADMIN_SECRET_KEY: ${{ secrets.MAINNET_ADMIN_SECRET_KEY }}
+        run: |
+          CONTRACT_ID=$(stellar contract deploy \
+            --wasm contracts/target/wasm32-unknown-unknown/release/vaccichain.wasm \
+            --source "$ADMIN_SECRET_KEY" \
+            --network mainnet)
+          echo "contract_id=$CONTRACT_ID" >> "$GITHUB_OUTPUT"
+          echo "### Mainnet Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Contract ID:** \`$CONTRACT_ID\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **WASM SHA-256:** \`${{ needs.build.outputs.wasm-hash }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Approved by:** \`${{ github.actor }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke test
+        env:
+          ADMIN_SECRET_KEY: ${{ secrets.MAINNET_ADMIN_SECRET_KEY }}
+          ADMIN_PUBLIC_KEY: ${{ secrets.MAINNET_ADMIN_PUBLIC_KEY }}
+          CONTRACT_ID: ${{ steps.deploy.outputs.contract_id }}
+        run: |
+          stellar contract invoke \
+            --id "$CONTRACT_ID" \
+            --source "$ADMIN_SECRET_KEY" \
+            --network mainnet \
+            -- verify_vaccination \
+            --wallet "$ADMIN_PUBLIC_KEY"
+
+      - name: Write contract ID to env config
+        env:
+          CONTRACT_ID: ${{ steps.deploy.outputs.contract_id }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh secret set MAINNET_CONTRACT_ID --body "$CONTRACT_ID"
