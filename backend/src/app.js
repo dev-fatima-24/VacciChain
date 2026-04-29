@@ -13,14 +13,17 @@ const authRoutes = require('./routes/auth');
 const vaccinationRoutes = require('./routes/vaccination');
 const verifyRoutes = require('./routes/verify');
 const adminRoutes = require('./routes/admin');
+const eventsRoutes = require('./routes/events');
+
 const patientRoutes = require('./routes/patient');
 const consentRoutes = require('./routes/consent');
 const eventsRoutes = require('./routes/events');
+const onboardingRoutes = require('./routes/onboarding');
 const apiVersion = require('./middleware/apiVersion');
 const { getRpcServer } = require('./stellar/soroban');
 
 const requestId = require('./middleware/requestId');
-const securityHeaders = require('./middleware/securityHeaders');
+const { sanitizeInputs } = require('./middleware/sanitize');
 
 const app = express();
 
@@ -28,6 +31,8 @@ app.use(securityHeaders);
 app.use(cors());
 app.use(express.json({ limit: config.BODY_LIMIT }));
 app.use(requestId);
+// Sanitize all string inputs at the API boundary (strips HTML tags, control chars, null bytes)
+app.use(sanitizeInputs);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -43,6 +48,12 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/auth', authRoutes);
+app.use('/vaccination', vaccinationRoutes);
+app.use('/verify', verifyRoutes);
+app.use('/admin', adminRoutes);
+app.use('/events', eventsRoutes);
+
 // v1 routes — all API endpoints are versioned under /v1/
 const v1 = express.Router();
 v1.use(apiVersion);
@@ -53,6 +64,7 @@ v1.use('/admin', adminRoutes);
 v1.use('/patient', patientRoutes);
 v1.use('/patient', consentRoutes);
 v1.use('/events', eventsRoutes);
+v1.use('/onboarding', onboardingRoutes);
 app.use('/v1', v1);
 
 // Legacy unversioned routes — 308 redirect to /v1/ with Deprecation header

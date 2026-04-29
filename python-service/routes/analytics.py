@@ -1,9 +1,10 @@
 import os
 from collections import defaultdict
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 import httpx
+from auth import require_analytics_auth
 
-router = APIRouter(tags=["Analytics"])
+router = APIRouter(tags=["Analytics"], dependencies=[Depends(require_analytics_auth)])
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:4000")
 # Anomaly threshold: flag issuers with more than this many mints in the dataset

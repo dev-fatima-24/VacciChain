@@ -39,6 +39,8 @@ use verify::DoseStatus;
 /// | 12   | InvalidInputIssuerName       | issuer name exceeds maximum length               |
 /// | 13   | InvalidInputLicense          | issuer license exceeds maximum length            |
 /// | 14   | InvalidInputCountry          | issuer country exceeds maximum length            |
+/// | 15   | SoulboundToken               | Transfers are disabled for soulbound records     |
+/// | 16   | PatientNotRegistered          | Patient has not self-registered                  |
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ContractError {

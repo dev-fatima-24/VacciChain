@@ -2,6 +2,7 @@ const express = require('express');
 const StellarSdk = require('@stellar/stellar-sdk');
 const authMiddleware = require('../middleware/auth');
 const { invokeContract } = require('../stellar/soroban');
+const { resolveContractErrorMessage } = require('../stellar/contractErrors');
 const { audit } = require('../middleware/auditLog');
 
 const router = express.Router();
@@ -24,14 +25,15 @@ router.post('/register', authMiddleware, async (req, res) => {
 
     res.json({ success: true, wallet: publicKey });
   } catch (err) {
+    const errorMessage = resolveContractErrorMessage(err);
     audit({
       actor: publicKey,
       action: 'patient.register',
       target: publicKey,
       result: 'failure',
-      meta: { error: err.message },
+      meta: { error: errorMessage },
     });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
