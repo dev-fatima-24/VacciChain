@@ -10,7 +10,7 @@ export function useVaccination() {
   const fetchRecords = useCallback(async (wallet) => {
     setLoading(true);
     try {
-      const res = await apiFetch(`/vaccination/${wallet}`);
+      const res = await apiFetch(`/v1/vaccination/${wallet}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       return data;
@@ -25,7 +25,7 @@ export function useVaccination() {
   const issueVaccination = useCallback(async (payload) => {
     setLoading(true);
     try {
-      const res = await apiFetch('/vaccination/issue', {
+      const res = await apiFetch('/v1/vaccination/issue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

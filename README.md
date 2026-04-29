@@ -152,7 +152,10 @@ issuer_address   →  bool (authorized)
 
 ##  Backend API
 
-Base URL: `http://localhost:4000`
+Base URL: `http://localhost:4000/v1`
+
+> All endpoints are versioned. Responses include an `API-Version: 1` header.
+> Unversioned paths (`/auth/...`, `/vaccination/...`, etc.) return a `308 Permanent Redirect` to `/v1/...` with a `Deprecation: true` header.
 
 ### Auth
 
