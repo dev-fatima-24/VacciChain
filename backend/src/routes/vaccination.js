@@ -5,6 +5,7 @@ const authMiddleware = require('../middleware/auth');
 const issuerMiddleware = require('../middleware/issuer');
 const { validateStellarPublicKey } = require('../middleware/wallet');
 const { invokeContract, simulateContract } = require('../stellar/soroban');
+const { resolveContractErrorMessage } = require('../stellar/contractErrors');
 const { audit } = require('../middleware/auditLog');
 const validate = require('../middleware/validate');
 const { hasConsented } = require('../indexer/db');
@@ -138,14 +139,15 @@ router.post(
       timestamp,
     });
   } catch (err) {
+    const errorMessage = resolveContractErrorMessage(err);
     audit({
       actor: req.user.publicKey,
       action: 'vaccination.issue',
       target: patient_address,
       result: 'failure',
-      meta: { error: err.message },
+      meta: { error: errorMessage },
     });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -220,14 +222,15 @@ router.post(
 
       res.json({ success: true, token_id });
     } catch (err) {
+      const errorMessage = resolveContractErrorMessage(err);
       audit({
         actor: req.user.publicKey,
         action: 'vaccination.revoke',
         target: String(token_id),
         result: 'failure',
-        meta: { token_id, error: err.message },
+        meta: { token_id, error: errorMessage },
       });
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: errorMessage });
     }
   }
 );
@@ -298,7 +301,8 @@ router.get('/:wallet', authMiddleware, validateStellarPublicKey('params', 'walle
 
     res.json({ data, total, page: rawPage, limit: rawLimit });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const errorMessage = resolveContractErrorMessage(err);
+    res.status(500).json({ error: errorMessage });
   }
 });
 

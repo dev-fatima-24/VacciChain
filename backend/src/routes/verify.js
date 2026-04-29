@@ -2,6 +2,7 @@ const express = require('express');
 const StellarSdk = require('@stellar/stellar-sdk');
 const { validateStellarPublicKey } = require('../middleware/wallet');
 const { simulateContract } = require('../stellar/soroban');
+const { resolveContractErrorMessage } = require('../stellar/contractErrors');
 const { verifyLimiter, verifierKeyLimiter } = require('../middleware/rateLimiter');
 const verifierApiKey = require('../middleware/verifierApiKey');
 const authMiddleware = require('../middleware/auth');
@@ -100,8 +101,9 @@ router.get(
 
       res.json({ wallet, vaccinated, record_count: records.length, records });
     } catch (err) {
-      audit({ actor, action: 'verify.lookup', target: wallet, result: 'failure', meta: { error: err.message } });
-      res.status(500).json({ error: err.message });
+      const errorMessage = resolveContractErrorMessage(err);
+      audit({ actor, action: 'verify.lookup', target: wallet, result: 'failure', meta: { error: errorMessage } });
+      res.status(500).json({ error: errorMessage });
     }
   }
 );
