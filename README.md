@@ -259,7 +259,19 @@ cp .env.example .env
 # Fill in your Stellar keys and contract IDs
 ```
 
-### 2. Deploy the contract
+### 2. Setup secret scanning protection
+
+```bash
+# Linux/macOS
+./scripts/setup-git-hooks.sh
+
+# Windows
+.\scripts\setup-git-hooks.ps1
+```
+
+This installs [Gitleaks](https://github.com/gitleaks/gitleaks) pre-commit hooks to prevent accidental commits of Stellar secret keys, JWT secrets, and other credentials. See [docs/secret-scanning-setup.md](docs/secret-scanning-setup.md) for details.
+
+### 3. Deploy the contract
 
 ```bash
 cd contracts
@@ -268,13 +280,13 @@ make deploy      # deploy to testnet, outputs CONTRACT_ID
 make test        # run contract unit tests
 ```
 
-### 3. Run with Docker
+### 4. Run with Docker
 
 ```bash
 docker compose up --build
 ```
 
-### 4. Run locally (without Docker)
+### 5. Run locally (without Docker)
 
 ```bash
 # Backend
