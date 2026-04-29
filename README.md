@@ -259,7 +259,19 @@ cp .env.example .env
 # Fill in your Stellar keys and contract IDs
 ```
 
-### 2. Deploy the contract
+### 2. Setup secret scanning protection
+
+```bash
+# Linux/macOS
+./scripts/setup-git-hooks.sh
+
+# Windows
+.\scripts\setup-git-hooks.ps1
+```
+
+This installs [Gitleaks](https://github.com/gitleaks/gitleaks) pre-commit hooks to prevent accidental commits of Stellar secret keys, JWT secrets, and other credentials. See [docs/secret-scanning-setup.md](docs/secret-scanning-setup.md) for details.
+
+### 3. Deploy the contract
 
 ```bash
 cd contracts
@@ -268,13 +280,13 @@ make deploy      # deploy to testnet, outputs CONTRACT_ID
 make test        # run contract unit tests
 ```
 
-### 3. Run with Docker
+### 4. Run with Docker
 
 ```bash
 docker compose up --build
 ```
 
-### 4. Run locally (without Docker)
+### 5. Run locally (without Docker)
 
 ```bash
 # Backend
@@ -339,6 +351,7 @@ cd python-service && pytest
 
 ##  Security Notes
 
+- **Secret scanning** — Gitleaks pre-commit hooks and CI/CD workflows prevent accidental commits of Stellar keys, JWT secrets, and API tokens
 - Soulbound enforcement is at the **contract level** — no UI or backend can bypass it
 - Issuer authorization is **on-chain** — adding/removing issuers requires an admin-signed contract call
 - SEP-10 challenges expire after 5 minutes and are single-use

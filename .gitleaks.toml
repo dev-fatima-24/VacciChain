@@ -1,0 +1,71 @@
+title = "VacciChain Gitleaks Configuration"
+
+[extend]
+# Use default gitleaks rules as base
+useDefault = true
+
+# Custom rules for VacciChain-specific secrets
+[[rules]]
+id = "stellar-secret-key"
+description = "Stellar Secret Key"
+regex = '''S[A-Z0-9]{55}'''
+tags = ["stellar", "secret", "key"]
+
+[[rules]]
+id = "stellar-private-key"
+description = "Stellar Private Key (alternative format)"
+regex = '''(?i)(stellar[_-]?secret|stellar[_-]?private)[_-]?key["\s:=]+[A-Z0-9]{56}'''
+tags = ["stellar", "secret", "key"]
+
+[[rules]]
+id = "jwt-secret"
+description = "JWT Secret"
+regex = '''(?i)(jwt[_-]?secret|jwt[_-]?key)["\s:=]+[A-Za-z0-9+/=]{32,}'''
+tags = ["jwt", "secret"]
+
+[[rules]]
+id = "soroban-secret"
+description = "Soroban Secret Key"
+regex = '''(?i)(soroban[_-]?secret|soroban[_-]?key)["\s:=]+[A-Za-z0-9+/=]{32,}'''
+tags = ["soroban", "secret"]
+
+[[rules]]
+id = "api-key-generic"
+description = "Generic API Key"
+regex = '''(?i)(api[_-]?key|apikey)["\s:=]+[A-Za-z0-9_\-]{20,}'''
+tags = ["api", "key"]
+
+# Allowlist for false positives
+[allowlist]
+description = "Allowlist for known false positives"
+paths = [
+  '''\.env\.example$''',
+  '''env\.example$''',
+  '''\.md$''',
+  '''test_.*\.js$''',
+  '''.*\.test\.js$''',
+  '''.*\.spec\.js$''',
+  '''__mocks__/.*''',
+]
+
+# Allowlist specific patterns that are not real secrets
+regexes = [
+  '''EXAMPLE_.*''',
+  '''TEST_.*''',
+  '''DEMO_.*''',
+  '''your-.*-here''',
+  '''replace-with-.*''',
+  '''<.*>''',
+  '''SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX''',
+]
+
+# Stop words that indicate example/placeholder values
+stopwords = [
+  "example",
+  "sample",
+  "test",
+  "demo",
+  "placeholder",
+  "your-secret-here",
+  "replace-me",
+]
