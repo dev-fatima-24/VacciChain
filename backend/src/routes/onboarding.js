@@ -13,6 +13,7 @@ const authMiddleware = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { audit } = require('../middleware/auditLog');
 const { addIssuer } = require('../stellar/soroban');
+const { requireMultiSig } = require('../middleware/multiSig');
 const {
   insertIssuerApplication,
   getIssuerApplication,
@@ -79,8 +80,9 @@ router.get('/applications', authMiddleware, adminOnly, (req, res) => {
  * POST /onboarding/applications/:id/review
  * Admin only — approve or reject an application.
  * On approval, the wallet is added to the contract issuer allowlist.
+ * Requires M-of-N multi-sig approval (see MULTISIG_THRESHOLD env var).
  */
-router.post('/applications/:id/review', authMiddleware, adminOnly, validate(reviewSchema), async (req, res) => {
+router.post('/applications/:id/review', authMiddleware, adminOnly, validate(reviewSchema), requireMultiSig('onboarding_review'), async (req, res) => {
   const application = getIssuerApplication(req.params.id);
   if (!application) {
     return res.status(404).json({ error: 'Application not found' });

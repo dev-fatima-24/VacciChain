@@ -23,12 +23,15 @@ const apiVersion = require('./middleware/apiVersion');
 const { getRpcServer } = require('./stellar/soroban');
 
 const requestId = require('./middleware/requestId');
+const { sanitizeInputs } = require('./middleware/sanitize');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: config.BODY_LIMIT }));
 app.use(requestId);
+// Sanitize all string inputs at the API boundary (strips HTML tags, control chars, null bytes)
+app.use(sanitizeInputs);
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -7,6 +7,7 @@ const { sep10Limiter } = require('../middleware/rateLimiter');
 const { audit } = require('../middleware/auditLog');
 const validate = require('../middleware/validate');
 const { bruteForceGuard, recordFailure, recordSuccess } = require('../middleware/bruteForce');
+const { getSigningKey } = require('../jwtKeys');
 
 const router = express.Router();
 
@@ -80,6 +81,7 @@ router.post('/verify', validate(verifySchema), bruteForceGuard, (req, res) => {
 
     const role = publicKey === process.env.ADMIN_PUBLIC_KEY ? 'issuer' : 'patient';
     const now = Math.floor(Date.now() / 1000);
+    const signingKey = getSigningKey();
 
     const token = jwt.sign(
       { sub: publicKey, wallet: publicKey, publicKey, role },
@@ -90,8 +92,8 @@ router.post('/verify', validate(verifySchema), bruteForceGuard, (req, res) => {
         wallet: publicKey,
         role,
       },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      signingKey.secret,
+      { expiresIn: '1h', keyid: signingKey.kid }
     );
 
     audit({ actor: publicKey, action: 'auth.login', result: 'success', meta: { role } });
