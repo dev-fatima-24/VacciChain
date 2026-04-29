@@ -1,0 +1,38 @@
+groups:
+  - name: vaccichain_uptime
+    rules:
+      # Alert within 2 minutes of a service going down
+      - alert: ServiceDown
+        expr: probe_success == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "VacciChain service down: {{ $labels.instance }}"
+          description: >
+            {{ $labels.instance }} (env={{ $labels.env }}) has been unreachable
+            for more than 2 minutes.
+
+      # Warn if response time exceeds 3 seconds
+      - alert: ServiceSlowResponse
+        expr: probe_duration_seconds > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow response: {{ $labels.instance }}"
+          description: >
+            {{ $labels.instance }} response time is {{ $value | humanizeDuration }},
+            exceeding the 3s threshold.
+
+      # Alert if health endpoint returns degraded status (503)
+      - alert: ServiceDegraded
+        expr: probe_http_status_code == 503
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "VacciChain service degraded: {{ $labels.instance }}"
+          description: >
+            {{ $labels.instance }} is returning HTTP 503 (degraded).
+            Soroban RPC may be unreachable.

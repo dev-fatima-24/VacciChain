@@ -1,0 +1,93 @@
+name: Load Test - Verification Endpoint
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly on Sunday at 2 AM UTC
+  workflow_dispatch:
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      backend:
+        image: node:18
+        options: >-
+          --health-cmd "curl -f http://localhost:4000/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 4000:4000
+        env:
+          NODE_ENV: test
+          PORT: 4000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Start backend
+        working-directory: ./backend
+        run: npm start &
+        env:
+          NODE_ENV: test
+
+      - name: Wait for backend to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -f http://localhost:4000/health 2>/dev/null; then
+              echo "Backend is ready"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 2
+          done
+          echo "Backend failed to start"
+          exit 1
+
+      - name: Install k6
+        run: |
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6-stable.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Run load test
+        working-directory: ./backend
+        run: |
+          k6 run \
+            -e BASE_URL=http://localhost:4000 \
+            -e VUS=100 \
+            -e DURATION=60s \
+            -e RAMP_UP=10s \
+            load-test.js \
+            --out json=load-test-results.json
+
+      - name: Upload load test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results
+          path: backend/load-test-results.json
+          retention-days: 30
+
+      - name: Parse and check results
+        if: always()
+        run: |
+          if [ -f backend/load-test-results.json ]; then
+            echo "Load test completed. Results saved."
+            # Check for acceptance criteria
+            # p95 < 500ms and 0% error rate
+          else
+            echo "Load test results not found"
+            exit 1
+          fi

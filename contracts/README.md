@@ -254,22 +254,26 @@ pub enum DataKey {
 
 ## Error Codes
 
-| Code | Name | Description |
-|------|------|-------------|
-| 1 | `AlreadyInitialized` | Contract has already been initialized |
-| 2 | `NotInitialized` | Contract has not been initialized |
-| 3 | `Unauthorized` | Caller is not an authorized issuer |
-| 4 | `ProposalExpired` | Admin transfer proposal has expired |
-| 5 | `NoPendingTransfer` | No pending admin transfer exists |
-| 6 | `DuplicateRecord` | Identical vaccination record already exists |
-| 7 | `RecordNotFound` | Vaccination record does not exist |
-| 8 | `AlreadyRevoked` | Vaccination record is already revoked |
-| 9 | `InvalidInput` | Input failed validation at the contract boundary |
-| 10 | `InvalidInputVaccineName` | vaccine_name exceeds maximum length |
-| 11 | `InvalidInputDateAdministered` | date_administered exceeds maximum length |
-| 12 | `InvalidInputIssuerName` | issuer name exceeds maximum length |
-| 13 | `InvalidInputLicense` | issuer license exceeds maximum length |
-| 14 | `InvalidInputCountry` | issuer country exceeds maximum length |
+Error codes are stable integers. Do not reorder or reuse codes; append new variants with a new code.
+
+| Code | Name | Description | When triggered |
+|------|------|-------------|----------------|
+| 1 | `AlreadyInitialized` | Contract has already been initialized | `initialize` called after initialization |
+| 2 | `NotInitialized` | Contract has not been initialized | Admin-only actions called before `initialize` (e.g., `add_issuer`, `revoke_issuer`, `propose_admin`, `upgrade`, `revoke_vaccination`) |
+| 3 | `Unauthorized` | Caller is not authorized for this action | Issuer is not authorized to mint, or revoker is neither issuer nor admin |
+| 4 | `ProposalExpired` | Admin transfer proposal has expired | `accept_admin` after the 24-hour window |
+| 5 | `NoPendingTransfer` | No pending admin transfer exists | `accept_admin` called without a proposal |
+| 6 | `DuplicateRecord` | Identical vaccination record already exists | `mint_vaccination` detects a duplicate record |
+| 7 | `RecordNotFound` | Vaccination record does not exist | `revoke_vaccination` called with an unknown token ID |
+| 8 | `AlreadyRevoked` | Vaccination record is already revoked | `revoke_vaccination` on an already revoked record |
+| 9 | `InvalidInput` | Input failed validation at the contract boundary | Generic input validation failure or unknown field name in length validator |
+| 10 | `InvalidInputVaccineName` | `vaccine_name` exceeds maximum length | `mint_vaccination` with `vaccine_name` longer than 100 characters |
+| 11 | `InvalidInputDateAdministered` | `date_administered` exceeds maximum length | `mint_vaccination` with `date_administered` longer than 100 characters |
+| 12 | `InvalidInputIssuerName` | issuer name exceeds maximum length | `add_issuer` with `name` longer than 100 characters |
+| 13 | `InvalidInputLicense` | issuer license exceeds maximum length | `add_issuer` with `license` longer than 100 characters |
+| 14 | `InvalidInputCountry` | issuer country exceeds maximum length | `add_issuer` with `country` longer than 100 characters |
+| 15 | `SoulboundToken` | Transfers are disabled for soulbound records | Any call to `transfer` |
+| 16 | `PatientNotRegistered` | Patient has not self-registered | `mint_vaccination` when patient is not allowlisted |
 
 ### Input Validation
 

@@ -36,3 +36,9 @@ function consume(nonce) {
 }
 
 module.exports = { set, consume };
+
+// Exposed only for tests — do not use in production code
+/* istanbul ignore next */
+if (process.env.NODE_ENV === 'test') {
+  module.exports._storeForTesting = () => store;
+}

@@ -3,9 +3,10 @@ const path    = require('path');
 const fs      = require('fs');
 const request = require('supertest');
 const crypto  = require('crypto');
-const jwt     = require('jsonwebtoken');
 const { initDb, insertApiKey, revokeApiKey } = require('../src/indexer/db');
 const app     = require('../src/app');
+const { jwtFactory } = require('./factories');
+
 
 const tmpDb = path.join(os.tmpdir(), `vaccichain-apikey-test-${Date.now()}.db`);
 
@@ -22,11 +23,9 @@ afterAll(() => {
 const VALID_WALLET = 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN';
 
 function issuerToken() {
-  return jwt.sign(
-    { sub: 'admin', role: 'issuer', wallet: VALID_WALLET, exp: Math.floor(Date.now() / 1000) + 3600 },
-    process.env.JWT_SECRET
-  );
+  return jwtFactory({ sub: 'admin', role: 'issuer', wallet: VALID_WALLET });
 }
+
 
 // ── admin API key routes ──────────────────────────────────────────────────────
 
@@ -37,10 +36,8 @@ describe('POST /admin/api-keys', () => {
   });
 
   it('requires issuer role', async () => {
-    const token = jwt.sign(
-      { sub: 'p', role: 'patient', wallet: VALID_WALLET, exp: Math.floor(Date.now() / 1000) + 3600 },
-      process.env.JWT_SECRET
-    );
+    const token = jwtFactory({ sub: 'p', role: 'patient', wallet: VALID_WALLET });
+
     const res = await request(app)
       .post('/admin/api-keys')
       .set('Authorization', `Bearer ${token}`)

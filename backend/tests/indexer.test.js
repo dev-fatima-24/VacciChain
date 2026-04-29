@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const { initDb, upsertEvents, queryEvents, getLatestLedger } = require('../src/indexer/db');
 const { parseEvent, stopPoller } = require('../src/indexer/poller');
+const { vaccinationRecordFactory } = require('./factories');
+
 
 const tmpDb = path.join(os.tmpdir(), `vaccichain-test-${Date.now()}.db`);
 
@@ -16,6 +18,7 @@ afterAll(() => {
 });
 
 describe('db — upsertEvents / queryEvents', () => {
+  const record = vaccinationRecordFactory({ vaccine_name: 'COVID-19', issuer_address: 'GISSUER1' });
   const sample = [
     {
       id: 'evt-001',
@@ -23,7 +26,7 @@ describe('db — upsertEvents / queryEvents', () => {
       ledger: 100,
       timestamp: 1700000000,
       contract_id: 'CABC',
-      payload: { vaccine_name: 'COVID-19', issuer: 'GISSUER1' },
+      payload: { vaccine_name: record.vaccine_name, issuer: record.issuer_address },
     },
     {
       id: 'evt-002',
@@ -34,6 +37,7 @@ describe('db — upsertEvents / queryEvents', () => {
       payload: { issuer: 'GISSUER2' },
     },
   ];
+
 
   it('stores events and returns them', () => {
     upsertEvents(sample);
@@ -59,7 +63,8 @@ describe('db — upsertEvents / queryEvents', () => {
   it('deserialises payload back to object', () => {
     const [evt] = queryEvents({ event_type: 'VaccinationMinted' });
     expect(typeof evt.payload).toBe('object');
-    expect(evt.payload.vaccine_name).toBe('COVID-19');
+    expect(evt.payload.vaccine_name).toBe(record.vaccine_name);
+
   });
 
   it('getLatestLedger returns highest ledger', () => {

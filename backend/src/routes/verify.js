@@ -2,6 +2,7 @@ const express = require('express');
 const StellarSdk = require('@stellar/stellar-sdk');
 const { validateStellarPublicKey } = require('../middleware/wallet');
 const { simulateContract } = require('../stellar/soroban');
+const { resolveContractErrorMessage } = require('../stellar/contractErrors');
 const { verifyLimiter, verifierKeyLimiter } = require('../middleware/rateLimiter');
 const verifierApiKey = require('../middleware/verifierApiKey');
 const authMiddleware = require('../middleware/auth');
@@ -29,6 +30,52 @@ function adaptiveLimiter(req, res, next) {
   return verifyLimiter(req, res, next);
 }
 
+/**
+ * @swagger
+ * /verify/{wallet}:
+ *   get:
+ *     summary: Public vaccination status verification
+ *     tags:
+ *       - Verification
+ *     security:
+ *       - bearerAuth: []
+ *       - apiKeyAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: wallet
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Stellar wallet address to verify
+ *     responses:
+ *       200:
+ *         description: Vaccination status retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 wallet:
+ *                   type: string
+ *                 vaccinated:
+ *                   type: boolean
+ *                 record_count:
+ *                   type: number
+ *                 records:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/VaccinationRecord'
+ *       401:
+ *         description: Unauthorized - JWT or API key required
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Contract query failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // GET /verify/:wallet — JWT or verifier API key
 router.get(
   '/:wallet',
@@ -54,8 +101,9 @@ router.get(
 
       res.json({ wallet, vaccinated, record_count: records.length, records });
     } catch (err) {
-      audit({ actor, action: 'verify.lookup', target: wallet, result: 'failure', meta: { error: err.message } });
-      res.status(500).json({ error: err.message });
+      const errorMessage = resolveContractErrorMessage(err);
+      audit({ actor, action: 'verify.lookup', target: wallet, result: 'failure', meta: { error: errorMessage } });
+      res.status(500).json({ error: errorMessage });
     }
   }
 );

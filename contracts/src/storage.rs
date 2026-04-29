@@ -76,6 +76,10 @@ pub struct VaccinationRecord {
     pub timestamp: u64,
     pub schema_version: u32,
     pub revoked: bool,
+    /// Which dose in the series this record represents (e.g. 1, 2, 3). None = single-dose / legacy.
+    pub dose_number: Option<u32>,
+    /// Total doses in the series (e.g. 3 for a 3-dose primary series). None = single-dose / legacy.
+    pub dose_series: Option<u32>,
 }
 
 #[contracttype]
@@ -94,7 +98,12 @@ pub enum DataKey {
     PendingAdmin,
     AdminTransferExpiry,
     Issuer(Address),
+    IssuerMeta(BytesN<32>),
+    IssuerList,
     PatientTokens(Address),
+    PatientAllowlist(Address),
+    PatientRecordLimit,
     Token(u64),
     Revoked(u64),
+    NextTokenId,
 }

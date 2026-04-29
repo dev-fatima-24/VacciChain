@@ -19,6 +19,11 @@ const schema = z.object({
   // Comma-separated list of allowed origins, e.g. https://app.example.com,https://admin.example.com
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
 
+  // SEP-10: home domain used as the manage_data key prefix ('<HOME_DOMAIN> auth')
+  HOME_DOMAIN: z.string().min(1).default('localhost'),
+  // SEP-10: domain of this auth server, included in the web_auth_domain manage_data op
+  WEB_AUTH_DOMAIN: z.string().min(1).default('localhost'),
+
   // Transaction fees (stroops; 1 XLM = 10_000_000 stroops)
   SOROBAN_FEE: z.coerce.number().int().positive().default(100),
   SOROBAN_TIP: z.coerce.number().int().min(0).default(0),

@@ -8,8 +8,12 @@
     "test": "jest --forceExit",
     "test:coverage": "c8 --check-coverage --lines 70 --functions 70 --branches 70 jest --forceExit",
     "seed": "node scripts/seed_demo.mjs"
+    "seed": "node scripts/seed_demo.mjs",
+    "load-test": "k6 run load-test.js",
+    "load-test:baseline": "k6 run -e BASE_URL=http://localhost:4000 -e VUS=100 -e DURATION=60s load-test.js"
   },
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.500.0",
     "@stellar/stellar-sdk": "^12.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -17,16 +21,23 @@
     "express-rate-limit": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
     "sql.js": "^1.12.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "winston": "^3.19.0",
     "zod": "^4.3.6"
   },
   "jest": {
     "setupFiles": [
       "./tests/setup.js"
-    ]
+    ],
+    "moduleNameMapper": {
+      "^../secrets$": "<rootDir>/tests/__mocks__/secrets.js",
+      "^./secrets$": "<rootDir>/tests/__mocks__/secrets.js"
+    }
   },
   "devDependencies": {
     "c8": "^11.0.0",
+    "@faker-js/faker": "^8.4.1",
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
     "supertest": "^6.3.4"
