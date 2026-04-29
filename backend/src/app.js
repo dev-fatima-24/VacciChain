@@ -27,6 +27,7 @@ const { sanitizeInputs } = require('./middleware/sanitize');
 
 const app = express();
 
+app.use(securityHeaders);
 app.use(cors());
 app.use(express.json({ limit: config.BODY_LIMIT }));
 app.use(requestId);

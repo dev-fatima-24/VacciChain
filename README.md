@@ -339,6 +339,7 @@ cd python-service && pytest
 
 ##  Security Notes
 
+- **Security headers** — Comprehensive CSP, X-Frame-Options, and other headers protect against XSS, clickjacking, and MIME sniffing attacks (see [docs/security-headers.md](docs/security-headers.md))
 - Soulbound enforcement is at the **contract level** — no UI or backend can bypass it
 - Issuer authorization is **on-chain** — adding/removing issuers requires an admin-signed contract call
 - SEP-10 challenges expire after 5 minutes and are single-use
