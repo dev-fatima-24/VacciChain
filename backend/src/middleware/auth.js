@@ -39,7 +39,7 @@ function authMiddleware(req, res, next) {
     }
 
     // Validate role value
-    if (!['patient', 'issuer'].includes(decoded.role)) {
+    if (!['patient', 'issuer', 'admin'].includes(decoded.role)) {
       return res.status(401).json({ error: 'Invalid role claim' });
     }
 

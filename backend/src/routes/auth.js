@@ -72,7 +72,7 @@ router.post('/verify', validate(verifySchema), (req, res) => {
   try {
     const publicKey = verifyChallenge(transaction, nonce);
 
-    const role = publicKey === process.env.ADMIN_PUBLIC_KEY ? 'issuer' : 'patient';
+    const role = publicKey === process.env.ADMIN_PUBLIC_KEY ? 'admin' : 'patient';
     const now = Math.floor(Date.now() / 1000);
 
     const token = jwt.sign(
