@@ -28,6 +28,11 @@ const SCHEMA = `
     created_at  TEXT NOT NULL,
     revoked     INTEGER NOT NULL DEFAULT 0
   );
+
+  CREATE TABLE IF NOT EXISTS patient_consent (
+    wallet       TEXT PRIMARY KEY,
+    consented_at TEXT NOT NULL
+  );
 `;
 
 /** Persist in-memory DB to disk. */
@@ -139,4 +144,27 @@ function revokeApiKey(id) {
   flush();
 }
 
-module.exports = { initDb, upsertEvents, queryEvents, getLatestLedger, insertApiKey, getApiKeyByHash, listApiKeys, revokeApiKey };
+module.exports = { initDb, upsertEvents, queryEvents, getLatestLedger, insertApiKey, getApiKeyByHash, listApiKeys, revokeApiKey, getConsent, recordConsent, hasConsented };
+
+// ── Patient consent ───────────────────────────────────────────────────────────
+
+function recordConsent(wallet) {
+  db.run(
+    'INSERT OR IGNORE INTO patient_consent (wallet, consented_at) VALUES (?, ?)',
+    [wallet, new Date().toISOString()]
+  );
+  flush();
+}
+
+function getConsent(wallet) {
+  const res = db.exec('SELECT wallet, consented_at FROM patient_consent WHERE wallet = ?', [wallet]);
+  if (!res.length) return null;
+  const { columns, values } = res[0];
+  const obj = {};
+  columns.forEach((col, i) => { obj[col] = values[0][i]; });
+  return obj;
+}
+
+function hasConsented(wallet) {
+  return !!getConsent(wallet);
+}

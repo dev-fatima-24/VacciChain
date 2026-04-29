@@ -7,6 +7,7 @@ const { validateStellarPublicKey } = require('../middleware/wallet');
 const { invokeContract, simulateContract } = require('../stellar/soroban');
 const { audit } = require('../middleware/auditLog');
 const validate = require('../middleware/validate');
+const { hasConsented } = require('../indexer/db');
 
 const router = express.Router();
 
@@ -97,6 +98,11 @@ router.post(
   validate(issueSchema),
   async (req, res) => {
   const { patient_address, vaccine_name, date_administered, dose_number, dose_series } = req.body;
+
+  // Enforce patient consent unless jurisdiction config waives it
+  if (process.env.REQUIRE_PATIENT_CONSENT !== 'false' && !hasConsented(patient_address)) {
+    return res.status(403).json({ error: 'Patient has not provided consent. They must consent before a record can be issued.' });
+  }
 
   try {
     const toOptU32 = (v) => v != null

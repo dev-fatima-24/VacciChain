@@ -7,6 +7,7 @@ import NFTCardSkeleton from '../components/NFTCardSkeleton';
 import RecordDetailModal from '../components/RecordDetailModal';
 import CopyButton from '../components/CopyButton';
 import QRCodeModal from '../components/QRCodeModal';
+import ConsentScreen from '../components/ConsentScreen';
 
 const PAGE_LIMIT = 20;
 
@@ -25,6 +26,7 @@ export default function PatientDashboard() {
   const { t } = useTranslation();
   const { publicKey, connect } = useAuth();
   const { fetchRecords, loading } = useVaccination();
+  const { consented, checkConsent, giveConsent, loading: consentLoading } = useConsent();
   const [records, setRecords] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -59,6 +61,19 @@ export default function PatientDashboard() {
       <div style={styles.page}>
         <p style={{ color: '#94a3b8', marginBottom: '1rem' }}>Connect your wallet to view records.</p>
         <button style={styles.btn} onClick={connect} aria-label="Connect Freighter wallet to view vaccination records">Connect Wallet</button>
+      </div>
+    );
+  }
+
+  // Show consent screen for first-time patients (consented === false means checked and not yet consented)
+  if (consented === false) {
+    return (
+      <div style={styles.page}>
+        <ConsentScreen
+          onAccept={giveConsent}
+          onDecline={handleDeclineConsent}
+          loading={consentLoading}
+        />
       </div>
     );
   }
