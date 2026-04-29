@@ -82,6 +82,7 @@ router.post('/verify', validate(verifySchema), bruteForceGuard, (req, res) => {
     const now = Math.floor(Date.now() / 1000);
 
     const token = jwt.sign(
+      { sub: publicKey, wallet: publicKey, publicKey, role },
       {
         sub: publicKey,
         iss: process.env.HOME_DOMAIN || 'localhost',

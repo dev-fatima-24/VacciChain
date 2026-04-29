@@ -13,6 +13,8 @@ const authRoutes = require('./routes/auth');
 const vaccinationRoutes = require('./routes/vaccination');
 const verifyRoutes = require('./routes/verify');
 const adminRoutes = require('./routes/admin');
+const eventsRoutes = require('./routes/events');
+
 const patientRoutes = require('./routes/patient');
 const consentRoutes = require('./routes/consent');
 const eventsRoutes = require('./routes/events');
@@ -41,6 +43,12 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+app.use('/auth', authRoutes);
+app.use('/vaccination', vaccinationRoutes);
+app.use('/verify', verifyRoutes);
+app.use('/admin', adminRoutes);
+app.use('/events', eventsRoutes);
 
 // v1 routes — all API endpoints are versioned under /v1/
 const v1 = express.Router();

@@ -13,7 +13,8 @@ describe('Auth routes', () => {
   it('POST /auth/sep10 requires public_key', async () => {
     const res = await request(app).post('/auth/sep10').send({});
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/public_key/);
+    expect(res.body.error).toBe('Validation failed');
+    expect(JSON.stringify(res.body.details)).toMatch(/public_key/);
   });
 
   it('POST /auth/sep10 rejects invalid key', async () => {
