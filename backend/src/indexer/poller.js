@@ -6,6 +6,8 @@
  */
 const StellarSdk = require('@stellar/stellar-sdk');
 const { upsertEvents, getLatestLedger } = require('./db');
+const { invalidateCache } = require('../stellar/issuerCache');
+
 
 const SOROBAN_RPC_URL = process.env.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
 const CONTRACT_ID = process.env.VACCINATIONS_CONTRACT_ID;
@@ -34,7 +36,7 @@ function parseEvent(raw) {
     const event_type = TOPIC_MAP[topicStr];
     if (!event_type) return null;
 
-    return {
+    const parsed = {
       id: raw.id,
       event_type,
       ledger: raw.ledger,
@@ -44,6 +46,17 @@ function parseEvent(raw) {
       contract_id: raw.contractId ?? CONTRACT_ID,
       payload: raw.value ?? {},
     };
+
+    // Extract issuer address from topics for IssuerAdded/Revoked events
+    if (parsed.event_type === 'IssuerAdded' || parsed.event_type === 'IssuerRevoked') {
+      const issuerScVal = raw.topic?.[1];
+      if (issuerScVal) {
+        parsed.payload.issuer = StellarSdk.scValToNative(issuerScVal);
+      }
+    }
+
+    return parsed;
+
   } catch {
     return null;
   }
@@ -74,6 +87,16 @@ async function poll() {
       upsertEvents(events);
       if (process.env.NODE_ENV !== 'test') {
         console.log(`[indexer] Stored ${events.length} new event(s) from ledger ${startLedger}`);
+      }
+
+      // Invalidate issuer cache on relevant events
+      for (const e of events) {
+        if ((e.event_type === 'IssuerRevoked' || e.event_type === 'IssuerAdded') && e.payload.issuer) {
+          invalidateCache(e.payload.issuer);
+          if (process.env.NODE_ENV !== 'test') {
+            console.log(`[indexer] Invalidated cache for issuer: ${e.payload.issuer}`);
+          }
+        }
       }
     }
   } catch (err) {

@@ -106,7 +106,9 @@ async function invokeContract(secretKey, method, args) {
         `Increase SOROBAN_FEE in your environment. Details: ${errDetail}`
       );
     }
-    throw new Error(`Contract invocation failed: ${errDetail}`);
+    const error = new Error(`Contract invocation failed: ${errDetail}`);
+    error.sorobanErrorResult = response.errorResult;
+    throw error;
   }
 
   // Poll for result
@@ -118,7 +120,10 @@ async function invokeContract(secretKey, method, args) {
   }
 
   if (result.status !== 'SUCCESS') {
-    throw new Error(`Transaction failed: ${result.status}`);
+    const error = new Error(`Transaction failed: ${result.status}`);
+    error.sorobanResultXdr = result.resultXdr;
+    error.sorobanStatus = result.status;
+    throw error;
   }
 
   return { returnValue: result.returnValue, hash: response.hash, ledger: result.ledger };
@@ -145,10 +150,25 @@ async function simulateContract(method, args) {
 
   const sim = await withRetry(() => rpc.simulateTransaction(tx), 'simulateTransaction');
   if (StellarSdk.SorobanRpc.Api.isSimulationError(sim)) {
-    throw new Error(`Simulation failed: ${sim.error}`);
+    const error = new Error(`Simulation failed: ${sim.error}`);
+    error.simulationError = sim.error;
+    throw error;
   }
 
   return sim.result?.retval;
 }
 
-module.exports = { getRpcServer, invokeContract, simulateContract };
+module.exports = { getRpcServer, invokeContract, simulateContract, addIssuer };
+
+/**
+ * Add a new issuer to the contract allowlist (admin-signed).
+ * @param {string} issuerWallet - Stellar public key to authorize as issuer
+ */
+async function addIssuer(issuerWallet) {
+  const adminSecret = process.env.ADMIN_SECRET_KEY;
+  if (!adminSecret) throw new Error('ADMIN_SECRET_KEY not configured');
+  const args = [StellarSdk.xdr.ScVal.scvAddress(
+    StellarSdk.Address.fromString(issuerWallet).toScAddress()
+  )];
+  return invokeContract(adminSecret, 'add_issuer', args);
+}

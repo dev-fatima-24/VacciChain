@@ -351,7 +351,7 @@ cd python-service && pytest
 
 ##  Security Notes
 
-- **Secret scanning** — Gitleaks pre-commit hooks and CI/CD workflows prevent accidental commits of Stellar keys, JWT secrets, and API tokens
+- **Security headers** — Comprehensive CSP, X-Frame-Options, and other headers protect against XSS, clickjacking, and MIME sniffing attacks (see [docs/security-headers.md](docs/security-headers.md))
 - Soulbound enforcement is at the **contract level** — no UI or backend can bypass it
 - Issuer authorization is **on-chain** — adding/removing issuers requires an admin-signed contract call
 - SEP-10 challenges expire after 5 minutes and are single-use
@@ -363,3 +363,15 @@ cd python-service && pytest
 ##  License
 
 MIT © VacciChain Contributors
+
+---
+
+## 🗺️ Roadmap
+
+| Milestone | Target | Focus |
+|-----------|--------|-------|
+| v0.1 — Testnet MVP | 2026-06-30 | Core contract, backend, frontend, CI |
+| v0.2 — Security Hardening | 2026-09-30 | Auth hardening, audit, onboarding |
+| v1.0 — Mainnet Launch | 2026-12-31 | Production deployment, compliance |
+
+See [docs/roadmap.md](docs/roadmap.md) for full milestone details, success criteria, and issue triage.
