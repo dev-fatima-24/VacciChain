@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const authMiddleware = require('../middleware/auth');
 const { queryAuditLog } = require('../middleware/auditLog');
 const { insertApiKey, listApiKeys, revokeApiKey } = require('../indexer/db');
+const { rotateKey, reloadFromEnv } = require('../jwtKeys');
 
 const router = express.Router();
 
@@ -70,6 +71,43 @@ router.get('/api-keys', authMiddleware, adminOnly, (_req, res) => {
 router.delete('/api-keys/:id', authMiddleware, adminOnly, (req, res) => {
   revokeApiKey(req.params.id);
   res.json({ revoked: true });
+});
+
+// ── JWT key rotation ──────────────────────────────────────────────────────────
+
+/**
+ * POST /admin/jwt/rotate
+ *
+ * Rotate the JWT signing key at runtime without a service restart.
+ * The current key is demoted to "previous" (still accepted for verification
+ * during the transition window). The new key is used for all future tokens.
+ *
+ * Body (option A — supply new secret directly):
+ *   { new_secret: string, new_kid?: string }
+ *
+ * Body (option B — reload from environment, e.g. after secrets manager refresh):
+ *   { reload_from_env: true }
+ *
+ * Requires admin role.
+ */
+router.post('/jwt/rotate', authMiddleware, adminOnly, (req, res) => {
+  const { new_secret, new_kid, reload_from_env } = req.body;
+
+  try {
+    if (reload_from_env) {
+      reloadFromEnv();
+      return res.json({ rotated: true, method: 'env_reload' });
+    }
+
+    if (!new_secret || typeof new_secret !== 'string' || new_secret.trim().length < 32) {
+      return res.status(400).json({ error: 'new_secret must be at least 32 characters' });
+    }
+
+    rotateKey({ newSecret: new_secret, newKid: new_kid });
+    res.json({ rotated: true, method: 'inline', kid: new_kid || 'auto' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;
