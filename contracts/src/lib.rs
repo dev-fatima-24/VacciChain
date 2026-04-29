@@ -17,6 +17,9 @@ mod upgrade_tests;
 #[cfg(test)]
 mod property_tests;
 
+#[cfg(test)]
+mod security_invariant_tests;
+
 use soroban_sdk::{contract, contractimpl, contracterror, Address, BytesN, Env, String, Vec, IntoVal};
 use storage::{DataKey, IssuerRecord, VaccinationRecord, hash_address, compute_token_id};
 use verify::DoseStatus;
