@@ -2,11 +2,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../hooks/useFreighter';
 import { useVaccination } from '../hooks/useVaccination';
 import { usePagination } from '../hooks/usePagination';
+import { useConsent } from '../hooks/useConsent';
 import NFTCard from '../components/NFTCard';
 import NFTCardSkeleton from '../components/NFTCardSkeleton';
 import RecordDetailModal from '../components/RecordDetailModal';
 import CopyButton from '../components/CopyButton';
 import QRCodeModal from '../components/QRCodeModal';
+import ConsentScreen from '../components/ConsentScreen';
 
 const styles = {
   page: { maxWidth: 700, width: '100%', margin: '2rem auto', padding: '0 1rem', boxSizing: 'border-box' },
@@ -23,9 +25,21 @@ export default function PatientDashboard() {
   const { t } = useTranslation();
   const { publicKey, connect } = useAuth();
   const { fetchRecords, loading } = useVaccination();
+  const { consented, checkConsent, giveConsent, loading: consentLoading } = useConsent();
   const [records, setRecords] = useState([]);
   const [error, setError] = useState(null);
+  const [qrRecord, setQrRecord] = useState(null);
   const { currentItems, page, totalPages, goTo, reset, total } = usePagination(records);
+
+  // Check consent status when wallet connects
+  useEffect(() => {
+    if (publicKey) checkConsent(publicKey);
+  }, [publicKey, checkConsent]);
+
+  const handleDeclineConsent = () => {
+    // Redirect to landing if patient declines
+    window.location.href = '/';
+  };
 
   const load = useCallback(() => {
     if (!publicKey) return;
@@ -47,6 +61,19 @@ export default function PatientDashboard() {
       <div style={styles.page}>
         <p style={{ color: '#94a3b8', marginBottom: '1rem' }}>Connect your wallet to view records.</p>
         <button style={styles.btn} onClick={connect} aria-label="Connect Freighter wallet to view vaccination records">Connect Wallet</button>
+      </div>
+    );
+  }
+
+  // Show consent screen for first-time patients (consented === false means checked and not yet consented)
+  if (consented === false) {
+    return (
+      <div style={styles.page}>
+        <ConsentScreen
+          onAccept={giveConsent}
+          onDecline={handleDeclineConsent}
+          loading={consentLoading}
+        />
       </div>
     );
   }
