@@ -89,3 +89,35 @@ jobs:
           name: test-videos
           path: frontend/test-results/
           retention-days: 7
+
+  visual:
+    name: Visual regression tests
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Install Playwright Chromium
+        run: cd frontend && npx playwright install chromium --with-deps
+
+      - name: Run visual regression tests
+        run: cd frontend && npx playwright test e2e/visual.spec.js --project=chromium
+        env:
+          CI: true
+
+      - name: Upload visual diff artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diff-results
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          retention-days: 14
