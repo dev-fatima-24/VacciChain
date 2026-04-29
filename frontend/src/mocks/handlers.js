@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 
 export const handlers = [
   // Authentication
-  http.post('/auth/sep10', async ({ request }) => {
+  http.post('/v1/auth/sep10', async ({ request }) => {
     const { public_key } = await request.json();
     return HttpResponse.json({
       transaction: 'AAAAAgAAAAB...', // Mock XDR
@@ -10,7 +10,7 @@ export const handlers = [
     });
   }),
 
-  http.post('/auth/verify', async ({ request }) => {
+  http.post('/v1/auth/verify', async ({ request }) => {
     const { transaction, nonce } = await request.json();
     return HttpResponse.json({
       token: 'mock-jwt-token',
@@ -20,7 +20,7 @@ export const handlers = [
   }),
 
   // Vaccination Records
-  http.get('/vaccination/:wallet', ({ params }) => {
+  http.get('/v1/vaccination/:wallet', ({ params }) => {
     const { wallet } = params;
     return HttpResponse.json({
       wallet,
@@ -35,7 +35,7 @@ export const handlers = [
     });
   }),
 
-  http.post('/vaccination/issue', async ({ request }) => {
+  http.post('/v1/vaccination/issue', async ({ request }) => {
     const payload = await request.json();
     return HttpResponse.json({
       success: true,
@@ -45,7 +45,7 @@ export const handlers = [
   }),
 
   // Verification
-  http.get('/verify/:wallet', ({ params }) => {
+  http.get('/v1/verify/:wallet', ({ params }) => {
     const { wallet } = params;
     return HttpResponse.json({
       wallet,
@@ -56,13 +56,23 @@ export const handlers = [
   }),
 
   // Patient Registration
-  http.post('/patient/register', async ({ request }) => {
+  http.post('/v1/patient/register', async ({ request }) => {
     const { publicKey } = await request.json();
     return HttpResponse.json({ success: true, wallet: publicKey || 'GB...' });
   }),
 
+  // Consent
+  http.get('/v1/patient/consent/:wallet', ({ params }) => {
+    return HttpResponse.json({ wallet: params.wallet, consented: false });
+  }),
+
+  http.post('/v1/patient/consent', async ({ request }) => {
+    const { wallet } = await request.json();
+    return HttpResponse.json({ success: true, wallet });
+  }),
+
   // Admin / API Keys
-  http.get('/admin/api-keys', () => {
+  http.get('/v1/admin/api-keys', () => {
     return HttpResponse.json([
       { 
         id: '1', 
@@ -73,7 +83,7 @@ export const handlers = [
     ]);
   }),
 
-  http.post('/admin/api-keys', async ({ request }) => {
+  http.post('/v1/admin/api-keys', async ({ request }) => {
     const { label } = await request.json();
     return HttpResponse.json({
       id: 'key-' + Math.random().toString(36).substring(7),
@@ -84,7 +94,7 @@ export const handlers = [
     });
   }),
 
-  http.delete('/admin/api-keys/:id', () => {
+  http.delete('/v1/admin/api-keys/:id', () => {
     return HttpResponse.json({ revoked: true });
   }),
 
@@ -94,7 +104,7 @@ export const handlers = [
   }),
 
   // Events
-  http.get('/events', () => {
+  http.get('/v1/events', () => {
     return HttpResponse.json({
       events: [],
       count: 0

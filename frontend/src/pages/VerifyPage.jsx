@@ -19,7 +19,7 @@ export default function VerifyPage() {
     setLoading(true);
     setResult(null);
     try {
-      const res = await fetch(`/verify/${address.trim()}`);
+      const res = await fetch(`/v1/verify/${address.trim()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setResult(data);

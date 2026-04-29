@@ -14,6 +14,9 @@ const vaccinationRoutes = require('./routes/vaccination');
 const verifyRoutes = require('./routes/verify');
 const adminRoutes = require('./routes/admin');
 const patientRoutes = require('./routes/patient');
+const consentRoutes = require('./routes/consent');
+const eventsRoutes = require('./routes/events');
+const apiVersion = require('./middleware/apiVersion');
 const { getRpcServer } = require('./stellar/soroban');
 
 const app = express();
@@ -38,12 +41,23 @@ app.use((req, _res, next) => {
   next();
 });
 
-app.use('/auth', authRoutes);
-app.use('/vaccination', vaccinationRoutes);
-app.use('/verify', verifyRoutes);
-app.use('/admin', adminRoutes);
-app.use('/patient', patientRoutes);
-app.use('/events', eventsRoutes);
+// v1 routes — all API endpoints are versioned under /v1/
+const v1 = express.Router();
+v1.use(apiVersion);
+v1.use('/auth', authRoutes);
+v1.use('/vaccination', vaccinationRoutes);
+v1.use('/verify', verifyRoutes);
+v1.use('/admin', adminRoutes);
+v1.use('/patient', patientRoutes);
+v1.use('/patient', consentRoutes);
+v1.use('/events', eventsRoutes);
+app.use('/v1', v1);
+
+// Legacy unversioned routes — 308 redirect to /v1/ with Deprecation header
+app.use(['/auth', '/vaccination', '/verify', '/admin', '/patient', '/events'], (req, res) => {
+  res.setHeader('Deprecation', 'true');
+  res.redirect(308, `/v1${req.originalUrl}`);
+});
 
 
 /**
