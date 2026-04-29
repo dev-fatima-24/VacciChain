@@ -1,8 +1,12 @@
 import os
+from contextlib import asynccontextmanager
+
 import structlog
 from fastapi import FastAPI, Request
+
 from routes.analytics import router as analytics_router
 from routes.batch import router as batch_router
+from scheduler import start_scheduler, stop_scheduler
 from schemas import HealthResponse
 
 structlog.configure(
@@ -18,7 +22,15 @@ structlog.configure(
 
 logger = structlog.get_logger(service="python-service")
 
-app = FastAPI(title="VacciChain Analytics", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler()
+    yield
+    stop_scheduler()
+
+
+app = FastAPI(title="VacciChain Analytics", version="1.0.0", lifespan=lifespan)
 
 app.include_router(analytics_router, prefix="/analytics")
 app.include_router(batch_router, prefix="/batch")

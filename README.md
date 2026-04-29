@@ -308,6 +308,12 @@ Copy `.env.example` to `.env` and fill in the required values. The backend valid
 | `AUDIT_LOG_PATH` | no | `./audit.log` | Path to append-only NDJSON audit log |
 | `ANALYTICS_PORT` | no | `8001` | Python analytics service port |
 | `BACKEND_URL` | no | `http://backend:4000` | Analytics service → backend base URL |
+| `ANOMALY_THRESHOLD` | no | `50` | Mint count above which an issuer is flagged |
+| `ANOMALY_SCHEDULE_MINUTES` | no | `15` | How often (minutes) the anomaly check runs |
+| `ALERT_WEBHOOK_URL` | no | — | Webhook URL to POST alerts to (Slack/PagerDuty/email) |
+| `ALERT_WEBHOOK_TYPE` | no | `slack` | Webhook payload format: `slack`, `pagerduty`, or `email` |
+| `PAGERDUTY_ROUTING_KEY` | no | — | PagerDuty Events API v2 routing key (required when `ALERT_WEBHOOK_TYPE=pagerduty`) |
+| `ALERT_EMAIL_TO` | no | — | Recipient address (required when `ALERT_WEBHOOK_TYPE=email`) |
 
 For full descriptions, format rules, and examples see [docs/configuration.md](docs/configuration.md).
 

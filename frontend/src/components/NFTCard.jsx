@@ -58,10 +58,34 @@ export default function NFTCard({ record, onClick }) {
         <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#38bdf8', minWidth: 0, wordBreak: 'break-word' }}>
           💉 {record.vaccine_name}
         </span>
-        <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'inline-flex', alignItems: 'center' }} aria-label={`Token ID ${record.token_id}`}>
-          #{record.token_id}
-          <CopyButton text={String(record.token_id)} label="token ID" />
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {record.dose_number != null && (
+            <span
+              aria-label={`Dose ${record.dose_number}${record.dose_series != null ? ` of ${record.dose_series}` : ''}`}
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                padding: '0.15rem 0.5rem',
+                borderRadius: 99,
+                background: record.dose_series != null && record.dose_number >= record.dose_series
+                  ? '#166534'
+                  : '#1e3a5f',
+                color: record.dose_series != null && record.dose_number >= record.dose_series
+                  ? '#86efac'
+                  : '#93c5fd',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {record.dose_series != null
+                ? `${record.dose_number}/${record.dose_series} doses`
+                : `Dose ${record.dose_number}`}
+            </span>
+          )}
+          <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'inline-flex', alignItems: 'center' }} aria-label={`Token ID ${record.token_id}`}>
+            #{record.token_id}
+            <CopyButton text={String(record.token_id)} label="token ID" />
+          </span>
+        </div>
       </div>
       <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '0.9rem' }}>
         Date: {record.date_administered}

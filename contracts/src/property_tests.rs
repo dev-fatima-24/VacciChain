@@ -39,11 +39,13 @@ proptest! {
             vaccine_str.clone(),
             date_str.clone(),
             issuer.clone(),
+        None,
+        None,
         );
 
         if let Ok(token_id) = mint_result {
             // Verify
-            let (vaccinated, records) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
+            let (vaccinated, records, _) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
 
             // Property: if mint succeeded, verify should return the record
             prop_assert!(vaccinated, "patient should be vaccinated after mint");
@@ -103,6 +105,8 @@ proptest! {
             vaccine_str,
             date_str,
             issuer.clone(),
+        None,
+        None,
         );
 
         if let Ok(token_id) = mint_result {
@@ -158,6 +162,8 @@ proptest! {
             vaccine_str.clone(),
             date_str.clone(),
             issuer.clone(),
+        None,
+        None,
         );
 
         if first_mint.is_ok() {
@@ -168,6 +174,8 @@ proptest! {
                 vaccine_str,
                 date_str,
                 issuer.clone(),
+        None,
+        None,
             );
 
             // Property: duplicate mint should always fail
@@ -215,11 +223,13 @@ proptest! {
             vaccine_str,
             date_str,
             issuer.clone(),
+        None,
+        None,
         );
 
         // Verify multiple times
-        let (vaccinated1, records1) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
-        let (vaccinated2, records2) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
+        let (vaccinated1, records1, _) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
+        let (vaccinated2, records2, _) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
 
         // Property: verify should return consistent results
         prop_assert_eq!(vaccinated1, vaccinated2, "vaccination status should be consistent");
@@ -262,11 +272,13 @@ proptest! {
             vaccine_str,
             date_str,
             issuer.clone(),
+        None,
+        None,
         );
 
         if let Ok(token_id) = mint_result {
             // Verify before revocation
-            let (vaccinated_before, records_before) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
+            let (vaccinated_before, records_before, _) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
             prop_assert!(vaccinated_before, "should be vaccinated before revocation");
             prop_assert!(records_before.len() > 0, "should have records before revocation");
 
@@ -274,7 +286,7 @@ proptest! {
             let _ = VacciChainContract::revoke_vaccination(env.clone(), token_id, issuer.clone());
 
             // Verify after revocation
-            let (vaccinated_after, records_after) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
+            let (vaccinated_after, records_after, _) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
 
             // Property: revoked records should not be returned
             prop_assert!(!vaccinated_after, "should not be vaccinated after revocation");
@@ -311,6 +323,8 @@ proptest! {
             vaccine_str,
             date_str,
             unauthorized_issuer.clone(),
+        None,
+        None,
         );
 
         // Property: unauthorized issuer should not be able to mint

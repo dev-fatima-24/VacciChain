@@ -14,27 +14,28 @@ const vaccinationRoutes = require('./routes/vaccination');
 const verifyRoutes = require('./routes/verify');
 const adminRoutes = require('./routes/admin');
 const patientRoutes = require('./routes/patient');
+const eventsRoutes = require('./routes/events');
 const { getRpcServer } = require('./stellar/soroban');
+
+const requestId = require('./middleware/requestId');
 
 const app = express();
 
-
 app.use(cors());
 app.use(express.json({ limit: config.BODY_LIMIT }));
+app.use(requestId);
 
-/**
- * Request logging middleware.
- *
- * Logs all incoming HTTP requests with method and path.
- *
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- *
- * @side-effects Logs request information
- */
-app.use((req, _res, next) => {
-  logger.info('request', { method: req.method, path: req.path });
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    logger.info('request', {
+      requestId: req.requestId,
+      method: req.method,
+      route: req.path,
+      statusCode: res.statusCode,
+      durationMs: Date.now() - start,
+    });
+  });
   next();
 });
 

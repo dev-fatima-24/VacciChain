@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useFreighter';
 import { useVaccination } from '../hooks/useVaccination';
-import { usePagination } from '../hooks/usePagination';
 import NFTCard from '../components/NFTCard';
 import NFTCardSkeleton from '../components/NFTCardSkeleton';
 import RecordDetailModal from '../components/RecordDetailModal';
 import CopyButton from '../components/CopyButton';
 import QRCodeModal from '../components/QRCodeModal';
+
+const PAGE_LIMIT = 20;
 
 const styles = {
   page: { maxWidth: 700, width: '100%', margin: '2rem auto', padding: '0 1rem', boxSizing: 'border-box' },
@@ -24,23 +26,33 @@ export default function PatientDashboard() {
   const { publicKey, connect } = useAuth();
   const { fetchRecords, loading } = useVaccination();
   const [records, setRecords] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [error, setError] = useState(null);
-  const { currentItems, page, totalPages, goTo, reset, total } = usePagination(records);
+  const [qrRecord, setQrRecord] = useState(null);
 
-  const load = useCallback(() => {
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT));
+
+  const load = useCallback((p = 1) => {
     if (!publicKey) return;
-    fetchRecords(publicKey)
+    fetchRecords(publicKey, { page: p, limit: PAGE_LIMIT })
       .then((data) => {
         setError(null);
-        reset();
-        if (data) setRecords(data.records || []);
+        if (data) {
+          setRecords(data.data || []);
+          setTotal(data.total ?? 0);
+          setPage(data.page ?? p);
+        }
       })
-      .catch((err) => {
-        setError(err.message || 'Failed to fetch records');
-      });
-  }, [publicKey, fetchRecords, reset]);
+      .catch((err) => setError(err.message || 'Failed to fetch records'));
+  }, [publicKey, fetchRecords]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(1); }, [load]);
+
+  const goTo = (p) => {
+    const next = Math.min(Math.max(1, p), totalPages);
+    load(next);
+  };
 
   if (!publicKey) {
     return (
@@ -70,7 +82,7 @@ export default function PatientDashboard() {
       {!loading && error && (
         <div style={{ textAlign: 'center', padding: '2rem 0' }}>
           <p style={{ color: '#f87171', marginBottom: '0.75rem' }}>⚠️ {error}</p>
-          <button style={styles.btn} onClick={load}>Retry</button>
+          <button style={styles.btn} onClick={() => load(page)}>Retry</button>
         </div>
       )}
       {!loading && !error && total === 0 && (
@@ -80,7 +92,7 @@ export default function PatientDashboard() {
         </div>
       )}
 
-      {currentItems.map((r) => (
+      {records.map((r) => (
         <NFTCard
           key={r.token_id}
           record={r}

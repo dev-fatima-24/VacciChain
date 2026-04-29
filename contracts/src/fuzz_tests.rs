@@ -63,6 +63,8 @@ proptest! {
             vaccine_str,
             date_str,
             issuer.clone(),
+        None,
+        None,
         );
 
         // Should succeed or fail gracefully
@@ -102,6 +104,8 @@ proptest! {
             vaccine_str,
             date_str,
             issuer.clone(),
+        None,
+        None,
         );
 
         // Should not panic, may return error
@@ -118,7 +122,7 @@ proptest! {
         let env = Env::default();
         let wallet = TestAddress::random(&env);
 
-        let (vaccinated, records) = crate::VacciChainContract::verify_vaccination(env.clone(), wallet);
+        let (vaccinated, records, _) = crate::VacciChainContract::verify_vaccination(env.clone(), wallet);
 
         // Should return false and empty records for non-existent wallet
         prop_assert!(!vaccinated);
@@ -159,6 +163,8 @@ proptest! {
             vaccine_str.clone(),
             date_str.clone(),
             issuer.clone(),
+        None,
+        None,
         );
 
         if result1.is_ok() {
@@ -169,6 +175,8 @@ proptest! {
                 vaccine_str,
                 date_str,
                 issuer.clone(),
+        None,
+        None,
             );
 
             prop_assert_eq!(result2, Err(ContractError::DuplicateRecord));

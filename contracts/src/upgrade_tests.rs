@@ -37,17 +37,19 @@ fn test_upgrade_v1_to_v2_data_persistence() {
         vaccine_name.clone(),
         date.clone(),
         issuer.clone(),
+        None,
+        None,
     ).expect("mint should succeed");
 
     // Verify record exists in v1
-    let (vaccinated, records) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
+    let (vaccinated, records, _) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
     assert!(vaccinated, "patient should be vaccinated");
     assert_eq!(records.len(), 1, "should have 1 record");
     assert_eq!(records.get(0).unwrap().schema_version, 1, "schema version should be 1");
 
     // After upgrade to v2, verify records are still readable
     // (In real scenario, contract would be redeployed with v2 code)
-    let (vaccinated_after, records_after) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
+    let (vaccinated_after, records_after, _) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
     assert!(vaccinated_after, "patient should still be vaccinated after upgrade");
     assert_eq!(records_after.len(), 1, "should still have 1 record");
     assert_eq!(records_after.get(0).unwrap().token_id, token_id, "token_id should match");
@@ -82,9 +84,11 @@ fn test_schema_version_field_read_across_versions() {
         vaccine_name,
         date,
         issuer.clone(),
+        None,
+        None,
     );
 
-    let (_, records) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
+    let (_, records, _) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
     let record = records.get(0).unwrap();
 
     // Verify schema_version field is correctly set
@@ -124,11 +128,13 @@ fn test_multiple_records_persist_after_upgrade() {
             vaccine,
             date,
             issuer.clone(),
+        None,
+        None,
         );
     }
 
     // Verify all records persist
-    let (vaccinated, records) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
+    let (vaccinated, records, _) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
     assert!(vaccinated, "patient should be vaccinated");
     assert_eq!(records.len(), 3, "should have 3 records");
 
@@ -167,13 +173,15 @@ fn test_revoked_records_persist_after_upgrade() {
         vaccine_name,
         date,
         issuer.clone(),
+        None,
+        None,
     ).expect("mint should succeed");
 
     // Revoke the record
     let _ = VacciChainContract::revoke_vaccination(env.clone(), token_id, issuer.clone());
 
     // Verify record is revoked
-    let (vaccinated, records) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
+    let (vaccinated, records, _) = VacciChainContract::verify_vaccination(env.clone(), patient.clone());
     assert!(!vaccinated, "patient should not be vaccinated after revocation");
     assert_eq!(records.len(), 0, "revoked records should not be returned");
 }
