@@ -1,6 +1,7 @@
 #  Vacci-Chain
 
 [![CI](https://github.com/EDOHWARES/VacciChain/actions/workflows/ci.yml/badge.svg)](https://github.com/EDOHWARES/VacciChain/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/EDOHWARES/VacciChain/graph/badge.svg?token=YOUR_TOKEN)](https://codecov.io/gh/EDOHWARES/VacciChain)
 
 > Blockchain-based vaccination records on Stellar — soulbound, verifiable, tamper-proof.
 

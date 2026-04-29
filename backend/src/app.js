@@ -26,7 +26,18 @@ const requestId = require('./middleware/requestId');
 const { sanitizeInputs } = require('./middleware/sanitize');
 
 const app = express();
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
 
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
+  credentials: true
+}));
 app.use(securityHeaders);
 app.use(cors());
 app.use(express.json({ limit: config.BODY_LIMIT }));

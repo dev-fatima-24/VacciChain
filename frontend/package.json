@@ -28,6 +28,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "jest",
+    "test:coverage": "jest --coverage --coverageThreshold '{\"global\":{\"lines\":70,\"statements\":70,\"functions\":70,\"branches\":70}}'"
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug"
