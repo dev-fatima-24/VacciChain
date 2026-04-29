@@ -350,3 +350,15 @@ cd python-service && pytest
 ##  License
 
 MIT © VacciChain Contributors
+
+---
+
+## 🗺️ Roadmap
+
+| Milestone | Target | Focus |
+|-----------|--------|-------|
+| v0.1 — Testnet MVP | 2026-06-30 | Core contract, backend, frontend, CI |
+| v0.2 — Security Hardening | 2026-09-30 | Auth hardening, audit, onboarding |
+| v1.0 — Mainnet Launch | 2026-12-31 | Production deployment, compliance |
+
+See [docs/roadmap.md](docs/roadmap.md) for full milestone details, success criteria, and issue triage.
