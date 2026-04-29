@@ -5,6 +5,9 @@ build:
 test:
 	cargo test
 
+test-coverage:
+	cargo tarpaulin --fail-under 85 --out Xml
+
 deploy:
 	@echo "Deploying to Stellar testnet..."
 	$(eval CONTRACT_ID := $(shell soroban contract deploy \

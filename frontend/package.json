@@ -18,6 +18,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "jest",
+    "test:coverage": "jest --coverage --coverageThreshold '{\"global\":{\"lines\":70,\"statements\":70,\"functions\":70,\"branches\":70}}'"
   }
 }
