@@ -1,9 +1,12 @@
 import os
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from schemas import BatchVerifyRequest, BatchVerifyResponse, WalletResult
 
 router = APIRouter(tags=["Batch"])
+limiter = Limiter(key_func=get_remote_address)
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:4000")
 
@@ -22,9 +25,11 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:4000")
     ),
     responses={
         400: {"description": "Request contains more than 100 wallets"},
+        429: {"description": "Rate limit exceeded"},
     },
 )
-async def batch_verify(request: BatchVerifyRequest):
+@limiter.limit("30/minute")
+async def batch_verify(request: Request, body: BatchVerifyRequest):
     """
     Verify vaccination status for multiple wallets in a single request.
 
@@ -46,12 +51,12 @@ async def batch_verify(request: BatchVerifyRequest):
         - No authentication required
         - Individual wallet lookup failures do not fail the entire request
     """
-    if len(request.wallets) > 100:
+    if len(body.wallets) > 100:
         raise HTTPException(status_code=400, detail="Maximum 100 wallets per request")
 
     results: list[WalletResult] = []
     async with httpx.AsyncClient() as client:
-        for wallet in request.wallets:
+        for wallet in body.wallets:
             try:
                 res = await client.get(f"{BACKEND_URL}/verify/{wallet}", timeout=10)
                 data = res.json()

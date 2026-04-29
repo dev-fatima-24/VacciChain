@@ -33,6 +33,18 @@ const SCHEMA = `
     wallet       TEXT PRIMARY KEY,
     consented_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS issuer_applications (
+    id             TEXT PRIMARY KEY,
+    wallet         TEXT NOT NULL UNIQUE,
+    name           TEXT NOT NULL,
+    license_number TEXT NOT NULL,
+    country        TEXT NOT NULL,
+    status         TEXT NOT NULL DEFAULT 'pending',
+    submitted_at   TEXT NOT NULL,
+    reviewed_at    TEXT,
+    reviewer_note  TEXT
+  );
 `;
 
 /** Persist in-memory DB to disk. */
@@ -144,7 +156,7 @@ function revokeApiKey(id) {
   flush();
 }
 
-module.exports = { initDb, upsertEvents, queryEvents, getLatestLedger, insertApiKey, getApiKeyByHash, listApiKeys, revokeApiKey, getConsent, recordConsent, hasConsented };
+module.exports = { initDb, upsertEvents, queryEvents, getLatestLedger, insertApiKey, getApiKeyByHash, listApiKeys, revokeApiKey, getConsent, recordConsent, hasConsented, insertIssuerApplication, getIssuerApplication, listIssuerApplications, updateIssuerApplicationStatus };
 
 // ── Patient consent ───────────────────────────────────────────────────────────
 
@@ -167,4 +179,47 @@ function getConsent(wallet) {
 
 function hasConsented(wallet) {
   return !!getConsent(wallet);
+}
+
+// ── Issuer onboarding applications ───────────────────────────────────────────
+
+function insertIssuerApplication({ id, wallet, name, license_number, country, submitted_at }) {
+  db.run(
+    `INSERT INTO issuer_applications (id, wallet, name, license_number, country, status, submitted_at)
+     VALUES (?,?,?,?,?,'pending',?)`,
+    [id, wallet, name, license_number, country, submitted_at]
+  );
+  flush();
+}
+
+function getIssuerApplication(id) {
+  const res = db.exec('SELECT * FROM issuer_applications WHERE id = ?', [id]);
+  if (!res.length) return null;
+  const { columns, values } = res[0];
+  const obj = {};
+  columns.forEach((col, i) => { obj[col] = values[0][i]; });
+  return obj;
+}
+
+function listIssuerApplications({ status } = {}) {
+  let sql = 'SELECT * FROM issuer_applications';
+  const params = [];
+  if (status) { sql += ' WHERE status = ?'; params.push(status); }
+  sql += ' ORDER BY submitted_at DESC';
+  const res = db.exec(sql, params);
+  if (!res.length) return [];
+  const { columns, values } = res[0];
+  return values.map(row => {
+    const obj = {};
+    columns.forEach((col, i) => { obj[col] = row[i]; });
+    return obj;
+  });
+}
+
+function updateIssuerApplicationStatus(id, { status, reviewer_note }) {
+  db.run(
+    'UPDATE issuer_applications SET status = ?, reviewed_at = ?, reviewer_note = ? WHERE id = ?',
+    [status, new Date().toISOString(), reviewer_note || null, id]
+  );
+  flush();
 }

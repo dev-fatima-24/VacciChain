@@ -6,6 +6,7 @@ const { buildChallenge, verifyChallenge } = require('../stellar/sep10');
 const { sep10Limiter } = require('../middleware/rateLimiter');
 const { audit } = require('../middleware/auditLog');
 const validate = require('../middleware/validate');
+const { bruteForceGuard, recordFailure, recordSuccess } = require('../middleware/bruteForce');
 
 const router = express.Router();
 
@@ -66,21 +67,26 @@ router.post('/sep10', sep10Limiter, validate(sep10Schema), async (req, res) => {
  * @returns {Object} 401 - Invalid signature or nonce mismatch
  * @throws {Error} 500 - Internal server error
  */
-router.post('/verify', validate(verifySchema), (req, res) => {
+router.post('/verify', validate(verifySchema), bruteForceGuard, (req, res) => {
   const { transaction, nonce } = req.body;
+  const ip = req.ip || req.socket?.remoteAddress || 'unknown';
 
   try {
     const publicKey = verifyChallenge(transaction, nonce);
+
+    // Clear failure counters on success
+    recordSuccess(`ip:${ip}`);
+    recordSuccess(`wallet:${publicKey}`);
 
     const role = publicKey === process.env.ADMIN_PUBLIC_KEY ? 'issuer' : 'patient';
     const now = Math.floor(Date.now() / 1000);
 
     const token = jwt.sign(
       {
-        sub: publicKey,       // SEP-10: subject is the authenticated Stellar account
+        sub: publicKey,
         iss: process.env.HOME_DOMAIN || 'localhost',
         iat: now,
-        wallet: publicKey,    // convenience claim used by authMiddleware
+        wallet: publicKey,
         role,
       },
       process.env.JWT_SECRET,
@@ -91,7 +97,18 @@ router.post('/verify', validate(verifySchema), (req, res) => {
 
     res.json({ token, wallet: publicKey, role });
   } catch (err) {
-    audit({ actor: 'unknown', action: 'auth.login', result: 'failure', meta: { error: err.message } });
+    // Attempt to extract wallet from the transaction for per-wallet tracking
+    let wallet = null;
+    try {
+      const tx = StellarSdk.TransactionBuilder.fromXDR(transaction, process.env.STELLAR_NETWORK_PASSPHRASE || 'Test SDF Network ; September 2015');
+      wallet = tx.source;
+    } catch (_) { /* ignore parse errors */ }
+
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    recordFailure(`ip:${ip}`, { ip, wallet });
+    if (wallet) recordFailure(`wallet:${wallet}`, { ip, wallet });
+
+    audit({ actor: wallet || 'unknown', action: 'auth.login', result: 'failure', meta: { error: err.message } });
     res.status(401).json({ error: err.message });
   }
 });

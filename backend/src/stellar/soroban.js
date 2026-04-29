@@ -151,4 +151,17 @@ async function simulateContract(method, args) {
   return sim.result?.retval;
 }
 
-module.exports = { getRpcServer, invokeContract, simulateContract };
+module.exports = { getRpcServer, invokeContract, simulateContract, addIssuer };
+
+/**
+ * Add a new issuer to the contract allowlist (admin-signed).
+ * @param {string} issuerWallet - Stellar public key to authorize as issuer
+ */
+async function addIssuer(issuerWallet) {
+  const adminSecret = process.env.ADMIN_SECRET_KEY;
+  if (!adminSecret) throw new Error('ADMIN_SECRET_KEY not configured');
+  const args = [StellarSdk.xdr.ScVal.scvAddress(
+    StellarSdk.Address.fromString(issuerWallet).toScAddress()
+  )];
+  return invokeContract(adminSecret, 'add_issuer', args);
+}

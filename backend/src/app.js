@@ -16,6 +16,7 @@ const adminRoutes = require('./routes/admin');
 const patientRoutes = require('./routes/patient');
 const consentRoutes = require('./routes/consent');
 const eventsRoutes = require('./routes/events');
+const onboardingRoutes = require('./routes/onboarding');
 const apiVersion = require('./middleware/apiVersion');
 const { getRpcServer } = require('./stellar/soroban');
 
@@ -51,6 +52,7 @@ v1.use('/admin', adminRoutes);
 v1.use('/patient', patientRoutes);
 v1.use('/patient', consentRoutes);
 v1.use('/events', eventsRoutes);
+v1.use('/onboarding', onboardingRoutes);
 app.use('/v1', v1);
 
 // Legacy unversioned routes — 308 redirect to /v1/ with Deprecation header
