@@ -75,11 +75,7 @@ router.post('/verify', validate(verifySchema), bruteForceGuard, (req, res) => {
   try {
     const publicKey = verifyChallenge(transaction, nonce);
 
-    // Clear failure counters on success
-    recordSuccess(`ip:${ip}`);
-    recordSuccess(`wallet:${publicKey}`);
-
-    const role = publicKey === process.env.ADMIN_PUBLIC_KEY ? 'issuer' : 'patient';
+    const role = publicKey === process.env.ADMIN_PUBLIC_KEY ? 'admin' : 'patient';
     const now = Math.floor(Date.now() / 1000);
     const signingKey = getSigningKey();
 
