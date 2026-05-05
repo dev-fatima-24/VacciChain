@@ -62,3 +62,19 @@ pub fn emit_patient_registered(env: &Env, patient: &Address) {
         (patient.clone(), timestamp),
     );
 }
+
+pub fn emit_contract_paused(env: &Env, admin: &Address) {
+    let timestamp = env.ledger().timestamp();
+    env.events().publish(
+        (symbol_short!("paused"),),
+        (admin.clone(), timestamp),
+    );
+}
+
+pub fn emit_contract_unpaused(env: &Env, admin: &Address) {
+    let timestamp = env.ledger().timestamp();
+    env.events().publish(
+        (symbol_short!("unpaused"),),
+        (admin.clone(), timestamp),
+    );
+}

@@ -4,11 +4,12 @@ import PatientDashboard from './pages/PatientDashboard';
 import IssuerDashboard from './pages/IssuerDashboard';
 import VerifyPage from './pages/VerifyPage';
 import AdminDashboard from './pages/AdminDashboard';
+import IssuerOnboarding from './pages/IssuerOnboarding';
+import AnalyticsDashboard from './pages/AnalyticsDashboard';
 import { AuthProvider } from './hooks/useFreighter';
 import { useDarkMode } from './hooks/useDarkMode';
 import FreighterBanner from './components/FreighterBanner';
 import DemoBanner from './components/DemoBanner';
-import { useDarkMode } from './hooks/useDarkMode'
 
 function NavLink({ to, children }) {
   const { pathname } = useLocation();
@@ -33,6 +34,8 @@ export default function App() {
         <NavLink to="/issuer">Issue</NavLink>
         <NavLink to="/verify">Verify</NavLink>
         <NavLink to="/admin">Admin</NavLink>
+        <NavLink to="/apply">Apply as Issuer</NavLink>
+        <NavLink to="/analytics">Analytics</NavLink>
       </nav>
       <FreighterBanner />
       <Routes>
@@ -41,6 +44,8 @@ export default function App() {
         <Route path="/issuer" element={<IssuerDashboard />} />
         <Route path="/verify" element={<VerifyPage />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/apply" element={<IssuerOnboarding />} />
+        <Route path="/analytics" element={<AnalyticsDashboard />} />
       </Routes>
     </AuthProvider>
   );

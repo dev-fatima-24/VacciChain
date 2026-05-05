@@ -4,8 +4,8 @@ const StellarSdk = require('@stellar/stellar-sdk');
 const authMiddleware = require('../middleware/auth');
 const { queryAuditLog, audit } = require('../middleware/auditLog');
 const { insertApiKey, listApiKeys, revokeApiKey } = require('../indexer/db');
-const { invokeContract, simulateContract } = require('../stellar/soroban');
-const config = require('../config');
+const { rotateKey, reloadFromEnv } = require('../jwtKeys');
+const { approveProposal, getProposal } = require('../middleware/multiSig');
 
 const router = express.Router();
 
@@ -140,6 +140,97 @@ router.get('/api-keys', authMiddleware, adminOnly, (_req, res) => {
 router.delete('/api-keys/:id', authMiddleware, adminOnly, (req, res) => {
   revokeApiKey(req.params.id);
   res.json({ revoked: true });
+});
+
+// ── JWT key rotation ──────────────────────────────────────────────────────────
+
+/**
+ * POST /admin/jwt/rotate
+ *
+ * Rotate the JWT signing key at runtime without a service restart.
+ * The current key is demoted to "previous" (still accepted for verification
+ * during the transition window). The new key is used for all future tokens.
+ *
+ * Body (option A — supply new secret directly):
+ *   { new_secret: string, new_kid?: string }
+ *
+ * Body (option B — reload from environment, e.g. after secrets manager refresh):
+ *   { reload_from_env: true }
+ *
+ * Requires admin role.
+ */
+router.post('/jwt/rotate', authMiddleware, adminOnly, (req, res) => {
+  const { new_secret, new_kid, reload_from_env } = req.body;
+
+  try {
+    if (reload_from_env) {
+      reloadFromEnv();
+      return res.json({ rotated: true, method: 'env_reload' });
+    }
+
+    if (!new_secret || typeof new_secret !== 'string' || new_secret.trim().length < 32) {
+      return res.status(400).json({ error: 'new_secret must be at least 32 characters' });
+    }
+
+    rotateKey({ newSecret: new_secret, newKid: new_kid });
+    res.json({ rotated: true, method: 'inline', kid: new_kid || 'auto' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Multi-sig proposal management ─────────────────────────────────────────────
+
+/**
+ * POST /admin/multisig/approve
+ * Body: { proposal_id: string }
+ *
+ * A registered key holder approves a pending multi-sig proposal.
+ * Once MULTISIG_THRESHOLD approvals are collected the proposal is marked
+ * "approved" and the initiator can re-submit the original request with
+ * the proposal_id to execute it.
+ */
+router.post('/multisig/approve', authMiddleware, adminOnly, (req, res) => {
+  const { proposal_id } = req.body;
+  if (!proposal_id) {
+    return res.status(400).json({ error: 'proposal_id is required' });
+  }
+
+  try {
+    const proposal = approveProposal(proposal_id, req.user.wallet);
+    res.json({
+      proposal_id: proposal.id,
+      operation: proposal.operation,
+      approvals: proposal.approvals.size,
+      status: proposal.status,
+      expires_at: new Date(proposal.expiresAt).toISOString(),
+    });
+  } catch (err) {
+    const status = err.message.includes('not found') ? 404
+      : err.message.includes('expired') ? 410
+      : err.message.includes('not a registered') ? 403
+      : 400;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /admin/multisig/proposals/:id
+ * Returns the current state of a proposal (approval count, status, expiry).
+ */
+router.get('/multisig/proposals/:id', authMiddleware, adminOnly, (req, res) => {
+  const proposal = getProposal(req.params.id);
+  if (!proposal) {
+    return res.status(404).json({ error: 'Proposal not found or expired' });
+  }
+  res.json({
+    proposal_id: proposal.id,
+    operation: proposal.operation,
+    initiator: proposal.initiator,
+    approvals: proposal.approvals.size,
+    status: proposal.status,
+    expires_at: new Date(proposal.expiresAt).toISOString(),
+  });
 });
 
 module.exports = router;

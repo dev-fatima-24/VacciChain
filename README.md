@@ -1,6 +1,7 @@
 #  Vacci-Chain
 
 [![CI](https://github.com/EDOHWARES/VacciChain/actions/workflows/ci.yml/badge.svg)](https://github.com/EDOHWARES/VacciChain/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/EDOHWARES/VacciChain/graph/badge.svg?token=YOUR_TOKEN)](https://codecov.io/gh/EDOHWARES/VacciChain)
 
 > Blockchain-based vaccination records on Stellar — soulbound, verifiable, tamper-proof.
 
@@ -259,7 +260,19 @@ cp .env.example .env
 # Fill in your Stellar keys and contract IDs
 ```
 
-### 2. Deploy the contract
+### 2. Setup secret scanning protection
+
+```bash
+# Linux/macOS
+./scripts/setup-git-hooks.sh
+
+# Windows
+.\scripts\setup-git-hooks.ps1
+```
+
+This installs [Gitleaks](https://github.com/gitleaks/gitleaks) pre-commit hooks to prevent accidental commits of Stellar secret keys, JWT secrets, and other credentials. See [docs/secret-scanning-setup.md](docs/secret-scanning-setup.md) for details.
+
+### 3. Deploy the contract
 
 ```bash
 cd contracts
@@ -268,13 +281,13 @@ make deploy      # deploy to testnet, outputs CONTRACT_ID
 make test        # run contract unit tests
 ```
 
-### 3. Run with Docker
+### 4. Run with Docker
 
 ```bash
 docker compose up --build
 ```
 
-### 4. Run locally (without Docker)
+### 5. Run locally (without Docker)
 
 ```bash
 # Backend
@@ -339,6 +352,7 @@ cd python-service && pytest
 
 ##  Security Notes
 
+- **Security headers** — Comprehensive CSP, X-Frame-Options, and other headers protect against XSS, clickjacking, and MIME sniffing attacks (see [docs/security-headers.md](docs/security-headers.md))
 - Soulbound enforcement is at the **contract level** — no UI or backend can bypass it
 - Issuer authorization is **on-chain** — adding/removing issuers requires an admin-signed contract call
 - SEP-10 challenges expire after 5 minutes and are single-use
@@ -350,3 +364,15 @@ cd python-service && pytest
 ##  License
 
 MIT © VacciChain Contributors
+
+---
+
+## 🗺️ Roadmap
+
+| Milestone | Target | Focus |
+|-----------|--------|-------|
+| v0.1 — Testnet MVP | 2026-06-30 | Core contract, backend, frontend, CI |
+| v0.2 — Security Hardening | 2026-09-30 | Auth hardening, audit, onboarding |
+| v1.0 — Mainnet Launch | 2026-12-31 | Production deployment, compliance |
+
+See [docs/roadmap.md](docs/roadmap.md) for full milestone details, success criteria, and issue triage.
