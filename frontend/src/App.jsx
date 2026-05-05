@@ -10,7 +10,6 @@ import { AuthProvider } from './hooks/useFreighter';
 import { useDarkMode } from './hooks/useDarkMode';
 import FreighterBanner from './components/FreighterBanner';
 import DemoBanner from './components/DemoBanner';
-import { useDarkMode } from './hooks/useDarkMode'
 
 function NavLink({ to, children }) {
   const { pathname } = useLocation();

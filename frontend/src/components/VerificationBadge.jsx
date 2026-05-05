@@ -46,9 +46,8 @@ export default function VerificationBadge({ status, vaccinated, recordCount = 0 
   const config = configs[effectiveStatus] || configs['not-found'];
 
   return (
-    <div 
-      data-testid="verification-badge"
     <div
+      data-testid="verification-badge"
       id="verification-badge"
       aria-label={config.label}
       style={{
